@@ -1,0 +1,24 @@
+all: build
+
+build:
+	cargo build
+
+install:
+	cargo install --path .
+
+update:
+	cargo update
+
+test:
+	cargo test
+
+check:
+	cargo check --bins --examples --tests
+
+format:
+	cargo fmt
+
+clean:
+	cargo clean
+
+.PHONY: all build test update check clean
