@@ -8,7 +8,7 @@ edition = "2018"
 
 [dependencies]
 clap = "^2.33.0"
-rcgen = "^0.8.1"
+rcgen = { version = "^0.8.1", features = ["pem", "x509-parser"] }
 
 [dev-dependencies]
 rustls = "^0.17.0"

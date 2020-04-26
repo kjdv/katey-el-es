@@ -25,7 +25,7 @@ fn root_generates_key_and_ca() {
     certgen(&["root", name.as_str()]).ok().unwrap();
 
     assert_valid_key(format!("{}-key.pem", name).as_str());
-    assert_valid_cert(format!("{}-ca.pem", name).as_str());
+    assert_valid_cert(format!("{}-cert.pem", name).as_str());
 }
 
 #[test]
@@ -49,6 +49,21 @@ fn request_generates_key_and_ca() {
 }
 
 #[test]
+fn sign_needs_request_and_private_key() {
+    let ca = unique_name("ca-signer");
+    let req = unique_name("request");
+
+    certgen(&["root", ca.as_str()]).ok().unwrap();
+    certgen(&["request", req.as_str()]).ok().unwrap();
+
+    certgen(&["sign"]).ok().unwrap_err();
+
+    certgen(&["sign", req.as_str()]).ok().unwrap_err();
+
+    certgen(&["sign", req.as_str(), ca.as_str()]).ok().unwrap();
+}
+
+#[test]
 fn server_config_is_usable() {
     let name = unique_name("valid-root");
 
@@ -56,8 +71,8 @@ fn server_config_is_usable() {
 
     let (mut client, mut server) = make_pair(
         format!("{}-key.pem", name).as_str(),
-        format!("{}-ca.pem", name).as_str(),
-        format!("{}-ca.pem", name).as_str(),
+        format!("{}-cert.pem", name).as_str(),
+        format!("{}-cert.pem", name).as_str(),
         name.as_str(),
     );
     assert_eq!(true, client.is_handshaking());
@@ -78,8 +93,8 @@ fn client_rejects_bad_cert() {
 
     let (mut client, mut server) = make_pair(
         format!("{}-key.pem", name1).as_str(),
-        format!("{}-ca.pem", name1).as_str(),
-        format!("{}-ca.pem", name2).as_str(),
+        format!("{}-cert.pem", name1).as_str(),
+        format!("{}-cert.pem", name2).as_str(),
         name2.as_str(),
     );
     assert_eq!(true, client.is_handshaking());

@@ -1,8 +1,8 @@
 extern crate assert_cmd;
 extern crate rand;
+extern crate rcgen;
 extern crate rustls;
 extern crate webpki;
-extern crate rcgen;
 
 use rand::Rng;
 use rustls::{internal::pemfile, ClientSession, ServerSession};
