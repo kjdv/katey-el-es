@@ -10,10 +10,12 @@ fn subcommand_is_mandatory() {
 
 #[test]
 fn root_needs_name_arg() {
+    let name = unique_name("_");
+
     let mut cmd = certgen(&["root"]);
     cmd.unwrap_err();
 
-    let mut cmd = certgen(&["root", "_"]);
+    let mut cmd = certgen(&["root", name.as_str()]);
     cmd.unwrap();
 }
 
@@ -24,6 +26,26 @@ fn root_generates_key_and_ca() {
 
     assert_valid_key(format!("{}-key.pem", name).as_str());
     assert_valid_cert(format!("{}-ca.pem", name).as_str());
+}
+
+#[test]
+fn request_needs_name_arg() {
+    let name = unique_name("_");
+
+    let mut cmd = certgen(&["request"]);
+    cmd.unwrap_err();
+
+    let mut cmd = certgen(&["request", name.as_str()]);
+    cmd.unwrap();
+}
+
+#[test]
+fn request_generates_key_and_ca() {
+    let name = unique_name("sample-request");
+    certgen(&["request", name.as_str()]).ok().unwrap();
+
+    assert_valid_key(format!("{}-key.pem", name).as_str());
+    assert_valid_request(format!("{}-request.pem", name).as_str());
 }
 
 #[test]

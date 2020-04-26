@@ -2,6 +2,7 @@ extern crate assert_cmd;
 extern crate rand;
 extern crate rustls;
 extern crate webpki;
+extern crate rcgen;
 
 use rand::Rng;
 use rustls::{internal::pemfile, ClientSession, ServerSession};
@@ -22,6 +23,11 @@ pub fn assert_valid_key(filename: &str) {
 pub fn assert_valid_cert(filename: &str) {
     let certs = read_certs(&filename);
     assert_eq!(1, certs.len(), "expected 1 cert");
+}
+
+pub fn assert_valid_request(filename: &str) {
+    load_file(filename);
+    // todo: meaningful implementation
 }
 
 pub fn make_pair(key: &str, cert: &str, root: &str, name: &str) -> (ClientSession, ServerSession) {

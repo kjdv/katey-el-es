@@ -14,9 +14,13 @@ fn main() {
         .subcommand(
             SubCommand::with_name("root")
                 .about("generates a root certificate and key")
-                .arg(name_arg.clone().required(true).index(1)),
+                .arg(name_arg.clone().required(true).index(1))
         )
-        .subcommand(SubCommand::with_name("request").about("generates a certificate request"))
+        .subcommand(
+            SubCommand::with_name("request")
+                .about("generates a certificate request")
+                .arg(name_arg.clone().required(true).index(1))
+        )
         .subcommand(SubCommand::with_name("sign").about("sign a certificate request"))
         .setting(AppSettings::SubcommandRequiredElseHelp)
         .get_matches();
@@ -31,11 +35,7 @@ fn main() {
 }
 
 fn root(args: &ArgMatches) {
-    let name = args.value_of("name").unwrap();
-    let names = vec!["localhost".to_string(), name.to_string()];
-
-    let params = CertificateParams::new(names);
-    let cert = Certificate::from_params(params).expect("certificate generation");
+    let cert = generate(&args);
 
     let filename = key_filename(&args);
     dump(filename.as_str(), &cert.serialize_private_key_pem());
@@ -44,12 +44,26 @@ fn root(args: &ArgMatches) {
     dump(filename.as_str(), &cert.serialize_pem().expect("ca pem"));
 }
 
-fn request(_args: &ArgMatches) {
-    println!("implement me!")
+fn request(args: &ArgMatches) {
+    let cert = generate(&args);
+
+    let filename = key_filename(&args);
+    dump(filename.as_str(), &cert.serialize_private_key_pem());
+
+    let filename = request_filename(&args);
+    dump(filename.as_str(), &cert.serialize_request_pem().expect("ca pem"));
 }
 
 fn sign(_args: &ArgMatches) {
     println!("implement me!")
+}
+
+fn generate(args: &ArgMatches) -> Certificate {
+    let name = args.value_of("name").unwrap();
+    let names = vec!["localhost".to_string(), name.to_string()];
+
+    let params = CertificateParams::new(names);
+    Certificate::from_params(params).expect("certificate generation")
 }
 
 fn dump(filename: &str, content: &str) {
@@ -60,6 +74,11 @@ fn dump(filename: &str, content: &str) {
 fn ca_filename(args: &ArgMatches) -> String {
     let basename = name_arg(args);
     format!("{}-ca.pem", basename)
+}
+
+fn request_filename(args: &ArgMatches) -> String {
+    let basename = name_arg(args);
+    format!("{}-request.pem", basename)
 }
 
 fn key_filename(args: &ArgMatches) -> String {
