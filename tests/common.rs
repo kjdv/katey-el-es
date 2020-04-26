@@ -31,7 +31,7 @@ pub fn assert_valid_request(filename: &str) {
 }
 
 pub fn make_pair(key: &str, cert: &str, root: &str, name: &str) -> (ClientSession, ServerSession) {
-    let server_cfg = Arc::new(make_server_config(&key, &cert));
+    let server_cfg = Arc::new(make_server_config(&key, &cert, &root));
     let client_cfg = Arc::new(make_client_config(&root));
 
     let client = rustls::ClientSession::new(&client_cfg, dns_name(name));
@@ -109,8 +109,14 @@ fn read_certs(filename: &str) -> Vec<rustls::Certificate> {
     pemfile::certs(&mut reader).expect("cant load cert file")
 }
 
-fn make_server_config(key: &str, cert: &str) -> rustls::ServerConfig {
-    let mut cfg = rustls::ServerConfig::new(rustls::NoClientAuth::new());
+fn make_server_config(key: &str, cert: &str, root: &str) -> rustls::ServerConfig {
+    let mut store = rustls::RootCertStore{roots: vec![]};
+    for c in read_certs(root).iter() {
+        store.add(c).expect("adding root cert");
+    }
+
+    let auth = rustls::AllowAnyAuthenticatedClient::new(store);
+    let mut cfg = rustls::ServerConfig::new(auth);
     cfg.set_single_cert(read_certs(cert), read_key(key))
         .expect("setting cert and key");
     cfg

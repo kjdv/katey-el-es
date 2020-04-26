@@ -65,15 +65,19 @@ fn sign_needs_request_and_private_key() {
 
 #[test]
 fn server_config_is_usable() {
-    let name = unique_name("valid-root");
+    let ca = unique_name("valid-root");
+    let host = unique_name("valid-host");
+    let client = unique_name("valid-client");
 
-    certgen(&["root", name.as_str()]).ok().unwrap();
+    certgen(&["root", ca.as_str()]).ok().unwrap();
+    certgen(&["sign", host.as_str(), ca.as_str()]).ok().unwrap();
+    certgen(&["sign", client.as_str(), ca.as_str()]).ok().unwrap();
 
     let (mut client, mut server) = make_pair(
-        format!("{}-key.pem", name).as_str(),
-        format!("{}-cert.pem", name).as_str(),
-        format!("{}-cert.pem", name).as_str(),
-        name.as_str(),
+        format!("{}-key.pem", host).as_str(),
+        format!("{}-cert.pem", host).as_str(),
+        format!("{}-cert.pem", ca).as_str(),
+        host.as_str(),
     );
     assert_eq!(true, client.is_handshaking());
 
@@ -84,21 +88,51 @@ fn server_config_is_usable() {
 }
 
 #[test]
-fn client_rejects_bad_cert() {
-    let name1 = unique_name("invalid-root-1");
-    let name2 = unique_name("invalid-root-2");
+fn client_rejects_unsigned() {
+    let ca = unique_name("valid-root");
+    let bad_ca = unique_name("invalid-root");
+    let host = unique_name("valid-host");
+    let client = unique_name("valid-client");
 
-    certgen(&["root", name1.as_str()]).ok().unwrap();
-    certgen(&["root", name2.as_str()]).ok().unwrap();
+    certgen(&["root", ca.as_str()]).ok().unwrap();
+    certgen(&["root", bad_ca.as_str()]).ok().unwrap();
+    certgen(&["sign", host.as_str(), bad_ca.as_str()]).ok().unwrap();
+    certgen(&["sign", client.as_str(), ca.as_str()]).ok().unwrap();
 
     let (mut client, mut server) = make_pair(
-        format!("{}-key.pem", name1).as_str(),
-        format!("{}-cert.pem", name1).as_str(),
-        format!("{}-cert.pem", name2).as_str(),
-        name2.as_str(),
+        format!("{}-key.pem", host).as_str(),
+        format!("{}-cert.pem", host).as_str(),
+        format!("{}-cert.pem", ca).as_str(),
+        host.as_str(),
     );
     assert_eq!(true, client.is_handshaking());
 
-    let mut other = OtherSession { sess: &mut server };
-    client.complete_io(&mut other).expect_err("should reject");
+    client
+        .complete_io(&mut OtherSession { sess: &mut server })
+        .expect_err("should reject");
+}
+
+#[test]
+fn server_rejects_unsigned() {
+    let ca = unique_name("valid-root");
+    let bad_ca = unique_name("invalid-root");
+    let host = unique_name("valid-host");
+    let client = unique_name("valid-client");
+
+    certgen(&["root", ca.as_str()]).ok().unwrap();
+    certgen(&["root", bad_ca.as_str()]).ok().unwrap();
+    certgen(&["sign", host.as_str(), ca.as_str()]).ok().unwrap();
+    certgen(&["sign", client.as_str(), bad_ca.as_str()]).ok().unwrap();
+
+    let (mut client, mut server) = make_pair(
+        format!("{}-key.pem", host).as_str(),
+        format!("{}-cert.pem", host).as_str(),
+        format!("{}-cert.pem", ca).as_str(),
+        host.as_str(),
+    );
+    assert_eq!(true, server.is_handshaking());
+
+    server
+        .complete_io(&mut OtherSession { sess: &mut client })
+        .expect_err("should reject");
 }

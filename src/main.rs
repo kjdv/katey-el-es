@@ -41,7 +41,12 @@ fn main() {
 }
 
 fn root(args: &ArgMatches) {
-    let cert = generate(&args);
+    let name = args.value_of("name").unwrap();
+    let names = vec!["localhost".to_string(), name.to_string()];
+
+    let mut params = CertificateParams::new(names);
+    params.is_ca = rcgen::IsCa::Ca(BasicConstraints::Unconstrained);
+    let cert = Certificate::from_params(params).expect("certificate generation");
 
     let filename = key_filename(name_arg(&args));
     dump(filename.as_str(), &cert.serialize_private_key_pem());
