@@ -12,3 +12,4 @@ rcgen = "^0.8.1"
 
 [dev-dependencies]
 rustls = "^0.17.0"
+webpki = "^0.21.2"
