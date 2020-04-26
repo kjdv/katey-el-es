@@ -9,3 +9,6 @@ edition = "2018"
 [dependencies]
 clap = "^2.33.0"
 rcgen = "^0.8.1"
+
+[dev-dependencies]
+rustls = "^0.17.0"
