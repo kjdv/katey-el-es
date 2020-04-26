@@ -10,16 +10,15 @@ pub fn generate_root(names: Vec<String>) -> (String, String) {
     (key, cert)
 }
 
-
 #[cfg(test)]
 mod tests {
     extern crate rustls;
     extern crate webpki;
 
     use super::*;
-    use std::sync::Arc;
-    use std::io::{Read, Write};
     use rustls::{internal::pemfile, Session};
+    use std::io::{Read, Write};
+    use std::sync::Arc;
 
     fn read_key(pem: &str) -> rustls::PrivateKey {
         let mut reader = std::io::BufReader::new(pem.as_bytes());
@@ -43,13 +42,15 @@ mod tests {
     fn make_client_config(root: &str) -> rustls::ClientConfig {
         let mut cfg = rustls::ClientConfig::new();
         let mut reader = std::io::BufReader::new(root.as_bytes());
-        cfg.root_store.add_pem_file(&mut reader).expect("add pem file");
+        cfg.root_store
+            .add_pem_file(&mut reader)
+            .expect("add pem file");
         cfg
     }
 
     // represent a connected session, inspired and simplified from rustls test sets
     struct OtherSession<'a> {
-        sess: &'a mut dyn rustls::Session
+        sess: &'a mut dyn rustls::Session,
     }
 
     impl<'a> Read for OtherSession<'a> {
@@ -77,7 +78,11 @@ mod tests {
         webpki::DNSNameRef::try_from_ascii_str(name).unwrap()
     }
 
-    fn make_pair(key: &str, cert: &str, root: &str) -> (rustls::ClientSession, rustls::ServerSession) {
+    fn make_pair(
+        key: &str,
+        cert: &str,
+        root: &str,
+    ) -> (rustls::ClientSession, rustls::ServerSession) {
         let server_cfg = Arc::new(make_server_config(&key, &cert));
         let client_cfg = Arc::new(make_client_config(&root));
 
@@ -103,7 +108,9 @@ mod tests {
         let (mut client, mut server) = make_pair(&key, &cert, &cert);
         assert_eq!(true, client.is_handshaking());
 
-        client.complete_io(&mut OtherSession{sess: &mut server}).unwrap();
+        client
+            .complete_io(&mut OtherSession { sess: &mut server })
+            .unwrap();
         assert_eq!(false, client.is_handshaking());
     }
 
@@ -116,7 +123,7 @@ mod tests {
         let (mut client, mut server) = make_pair(&key, &cert, &root);
         assert_eq!(true, client.is_handshaking());
 
-        let mut other = OtherSession{sess: &mut server};
+        let mut other = OtherSession { sess: &mut server };
         client.complete_io(&mut other).expect_err("should reject");
     }
 }

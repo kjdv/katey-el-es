@@ -3,13 +3,8 @@ extern crate clap;
 use clap::{App, AppSettings, Arg, ArgMatches, SubCommand};
 use std::io::Write;
 
-
 fn main() {
-    let name_arg = Arg::with_name("name")
-        .help("name for this root")
-        .short("n")
-        .long("name")
-        .default_value("sample");
+    let name_arg = Arg::with_name("name").help("name for this certificate");
 
     let args = App::new("certgen")
         .about("Generates TLS Certificates")
@@ -17,18 +12,15 @@ fn main() {
         .subcommand(
             SubCommand::with_name("root")
                 .about("generates a root certificate and key")
-                .arg(name_arg.clone()),
+                .arg(name_arg.clone().required(true).index(1)),
         )
         .subcommand(SubCommand::with_name("request").about("generates a certificate request"))
         .subcommand(SubCommand::with_name("sign").about("sign a certificate request"))
         .setting(AppSettings::SubcommandRequiredElseHelp)
         .get_matches();
 
-    let subcommands: &[(&str, fn(&ArgMatches))] = &[
-        ("root", root),
-        ("request", request),
-        ("sign", sign),
-    ];
+    let subcommands: &[(&str, fn(&ArgMatches))] =
+        &[("root", root), ("request", request), ("sign", sign)];
     for (subcommand, handler) in subcommands {
         if let Some(sub_args) = args.subcommand_matches(subcommand) {
             handler(sub_args);
