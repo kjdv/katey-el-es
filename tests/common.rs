@@ -25,11 +25,6 @@ pub fn assert_valid_cert(filename: &str) {
     assert_eq!(1, certs.len(), "expected 1 cert");
 }
 
-pub fn assert_valid_request(filename: &str) {
-    load_file(filename);
-    // todo: meaningful implementation
-}
-
 pub fn make_pair(key: &str, cert: &str, root: &str, name: &str) -> (ClientSession, ServerSession) {
     let server_cfg = Arc::new(make_server_config(&key, &cert, &root));
     let client_cfg = Arc::new(make_client_config(&root));
@@ -110,7 +105,7 @@ fn read_certs(filename: &str) -> Vec<rustls::Certificate> {
 }
 
 fn make_server_config(key: &str, cert: &str, root: &str) -> rustls::ServerConfig {
-    let mut store = rustls::RootCertStore{roots: vec![]};
+    let mut store = rustls::RootCertStore { roots: vec![] };
     for c in read_certs(root).iter() {
         store.add(c).expect("adding root cert");
     }

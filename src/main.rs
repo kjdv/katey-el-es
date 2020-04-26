@@ -18,21 +18,31 @@ fn main() {
                 .arg(name_arg.clone().required(true).index(1)),
         )
         .subcommand(
-            SubCommand::with_name("request")
-                .about("generates a certificate request")
-                .arg(name_arg.clone().required(true).index(1)),
-        )
-        .subcommand(
             SubCommand::with_name("sign")
                 .about("sign a certificate request")
-                .arg(name_arg.clone().required(true).index(1))
-                .arg(ca_arg.clone().required(true).index(2)),
+                .arg(ca_arg.clone().required(true).index(1))
+                .arg(name_arg.clone().required(true).index(2)),
+        )
+        .subcommand(
+            SubCommand::with_name("tree")
+                .about("create a full tree of a root ca and multiple hosts")
+                .arg(
+                    Arg::with_name("ca")
+                        .help("name for the root ca")
+                        .required(true)
+                        .index(1),
+                )
+                .arg(
+                    Arg::with_name("hosts")
+                        .help("name(s) for the hosts")
+                        .required(true)
+                        .multiple(true),
+                ),
         )
         .setting(AppSettings::SubcommandRequiredElseHelp)
         .get_matches();
 
-    let subcommands: &[(&str, fn(&ArgMatches))] =
-        &[("root", root), ("request", request), ("sign", sign)];
+    let subcommands: &[(&str, fn(&ArgMatches))] = &[("root", root), ("sign", sign), ("tree", tree)];
     for (subcommand, handler) in subcommands {
         if let Some(sub_args) = args.subcommand_matches(subcommand) {
             handler(sub_args);
@@ -41,36 +51,30 @@ fn main() {
 }
 
 fn root(args: &ArgMatches) {
-    let name = args.value_of("name").unwrap();
+    do_root(name_arg(&args));
+}
+
+fn do_root(name: &str) {
     let names = vec!["localhost".to_string(), name.to_string()];
 
     let mut params = CertificateParams::new(names);
     params.is_ca = rcgen::IsCa::Ca(BasicConstraints::Unconstrained);
     let cert = Certificate::from_params(params).expect("certificate generation");
 
-    let filename = key_filename(name_arg(&args));
+    let filename = key_filename(name);
     dump(filename.as_str(), &cert.serialize_private_key_pem());
 
-    let filename = cert_filename(name_arg(&args));
+    let filename = cert_filename(name);
     dump(filename.as_str(), &cert.serialize_pem().expect("ca pem"));
 }
 
-fn request(args: &ArgMatches) {
-    let cert = generate(&args);
-
-    let filename = key_filename(name_arg(&args));
-    dump(filename.as_str(), &cert.serialize_private_key_pem());
-
-    let filename = request_filename(name_arg(&args));
-    dump(
-        filename.as_str(),
-        &cert.serialize_request_pem().expect("ca pem"),
-    );
+fn sign(args: &ArgMatches) {
+    do_sign(ca_arg(&args), name_arg(&args));
 }
 
-fn sign(args: &ArgMatches) {
-    let key = key_filename(ca_arg(&args));
-    let ca = cert_filename(ca_arg(&args));
+fn do_sign(ca: &str, name: &str) {
+    let key = key_filename(&ca);
+    let ca = cert_filename(&ca);
 
     let key = load(key.as_str());
     let ca = load(ca.as_str());
@@ -79,18 +83,27 @@ fn sign(args: &ArgMatches) {
     let ca = CertificateParams::from_ca_cert_pem(ca.as_str(), key).expect("cert loading");
     let ca = Certificate::from_params(ca).expect("certificate");
 
-    let cert = generate(&args);
+    let cert = generate(&name);
 
-    let filename = key_filename(name_arg(&args));
+    let filename = key_filename(&name);
     dump(filename.as_str(), &cert.serialize_private_key_pem());
 
-    let filename = cert_filename(name_arg(&args));
+    let filename = cert_filename(&name);
     let cert = cert.serialize_pem_with_signer(&ca).expect("signing");
     dump(filename.as_str(), &cert);
 }
 
-fn generate(args: &ArgMatches) -> Certificate {
-    let name = args.value_of("name").unwrap();
+fn tree(args: &ArgMatches) {
+    let ca = args.value_of("ca").unwrap();
+    do_root(ca);
+
+    let hosts: Vec<&str> = args.values_of("hosts").unwrap().collect();
+    for host in hosts.iter() {
+        do_sign(ca, host);
+    }
+}
+
+fn generate(name: &str) -> Certificate {
     let names = vec!["localhost".to_string(), name.to_string()];
 
     let params = CertificateParams::new(names);
@@ -111,10 +124,6 @@ fn load(filename: &str) -> String {
 
 fn cert_filename(basename: &str) -> String {
     format!("{}-cert.pem", basename)
-}
-
-fn request_filename(basename: &str) -> String {
-    format!("{}-request.pem", basename)
 }
 
 fn key_filename(basename: &str) -> String {
