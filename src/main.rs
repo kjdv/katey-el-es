@@ -1,6 +1,8 @@
 extern crate clap;
+extern crate rcgen;
 
 use clap::{App, AppSettings, Arg, ArgMatches, SubCommand};
+use rcgen::*;
 use std::io::Write;
 
 fn main() {
@@ -32,13 +34,14 @@ fn root(args: &ArgMatches) {
     let name = args.value_of("name").unwrap();
     let names = vec!["localhost".to_string(), name.to_string()];
 
-    let (key, cert) = certgen::generate_root(names);
+    let params = CertificateParams::new(names);
+    let cert = Certificate::from_params(params).expect("certificate generation");
 
     let filename = key_filename(&args);
-    dump(filename.as_str(), &key);
+    dump(filename.as_str(), &cert.serialize_private_key_pem());
 
     let filename = ca_filename(&args);
-    dump(filename.as_str(), &cert);
+    dump(filename.as_str(), &cert.serialize_pem().expect("ca pem"));
 }
 
 fn request(_args: &ArgMatches) {

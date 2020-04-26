@@ -1,44 +1,6 @@
-extern crate assert_cmd;
-extern crate rustls;
-
-use rustls::internal::pemfile;
-use std::io::Read;
-
-fn current_dir() -> std::path::PathBuf {
-    let path = std::env::current_exe().unwrap();
-    let path = path.parent().unwrap();
-    path.to_path_buf()
-}
-
-fn certgen(args: &[&str]) -> assert_cmd::Command {
-    let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).expect("cargo bin");
-    cmd.args(args);
-    cmd.current_dir(current_dir());
-    cmd
-}
-
-fn load_file(filename: &str) -> String {
-    let mut path = current_dir();
-    path.push(filename);
-    let mut file = std::fs::File::open(path).expect("file exists");
-    let mut content = String::new();
-    file.read_to_string(&mut content).expect("file is readable");
-    content
-}
-
-fn assert_valid_key(filename: &str) {
-    let pem = load_file(filename);
-    let mut reader = std::io::BufReader::new(pem.as_bytes());
-    let keys = pemfile::pkcs8_private_keys(&mut reader).expect("cant load keys");
-    assert_eq!(1, keys.len(), "expected 1 key");
-}
-
-fn assert_valid_cert(filename: &str) {
-    let pem = load_file(filename);
-    let mut reader = std::io::BufReader::new(pem.as_bytes());
-    let certs = pemfile::certs(&mut reader).expect("cant load cert file");
-    assert_eq!(1, certs.len(), "expected 1 cert");
-}
+mod common;
+use common::*;
+use rustls::Session;
 
 #[test]
 fn subcommand_is_mandatory() {
@@ -61,4 +23,39 @@ fn root_generates_key_and_ca() {
 
     assert_valid_key("sample-root-key.pem");
     assert_valid_cert("sample-root-ca.pem");
+}
+
+#[test]
+fn server_config_is_usable() {
+    certgen(&["root", "valid-root"]).ok().unwrap();
+
+    let (mut client, mut server) = make_pair(
+        "valid-root-key.pem",
+        "valid-root-ca.pem",
+        "valid-root-ca.pem",
+        "valid-root",
+    );
+    assert_eq!(true, client.is_handshaking());
+
+    client
+        .complete_io(&mut OtherSession { sess: &mut server })
+        .unwrap();
+    assert_eq!(false, client.is_handshaking());
+}
+
+#[test]
+fn client_rejects_bad_cert() {
+    certgen(&["root", "invalid-root-1"]).ok().unwrap();
+    certgen(&["root", "invalid-root-2"]).ok().unwrap();
+
+    let (mut client, mut server) = make_pair(
+        "invalid-root-1-key.pem",
+        "invalid-root-1-ca.pem",
+        "invalid-root-2-ca.pem",
+        "invalid-root-1",
+    );
+    assert_eq!(true, client.is_handshaking());
+
+    let mut other = OtherSession { sess: &mut server };
+    client.complete_io(&mut other).expect_err("should reject");
 }
