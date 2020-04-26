@@ -19,21 +19,24 @@ fn root_needs_name_arg() {
 
 #[test]
 fn root_generates_key_and_ca() {
-    certgen(&["root", "sample-root"]).ok().unwrap();
+    let name = unique_name("sample-root");
+    certgen(&["root", name.as_str()]).ok().unwrap();
 
-    assert_valid_key("sample-root-key.pem");
-    assert_valid_cert("sample-root-ca.pem");
+    assert_valid_key(format!("{}-key.pem", name).as_str());
+    assert_valid_cert(format!("{}-ca.pem", name).as_str());
 }
 
 #[test]
 fn server_config_is_usable() {
-    certgen(&["root", "valid-root"]).ok().unwrap();
+    let name = unique_name("valid-root");
+
+    certgen(&["root", name.as_str()]).ok().unwrap();
 
     let (mut client, mut server) = make_pair(
-        "valid-root-key.pem",
-        "valid-root-ca.pem",
-        "valid-root-ca.pem",
-        "valid-root",
+        format!("{}-key.pem", name).as_str(),
+        format!("{}-ca.pem", name).as_str(),
+        format!("{}-ca.pem", name).as_str(),
+        name.as_str(),
     );
     assert_eq!(true, client.is_handshaking());
 
@@ -45,14 +48,17 @@ fn server_config_is_usable() {
 
 #[test]
 fn client_rejects_bad_cert() {
-    certgen(&["root", "invalid-root-1"]).ok().unwrap();
-    certgen(&["root", "invalid-root-2"]).ok().unwrap();
+    let name1 = unique_name("invalid-root-1");
+    let name2 = unique_name("invalid-root-2");
+
+    certgen(&["root", name1.as_str()]).ok().unwrap();
+    certgen(&["root", name2.as_str()]).ok().unwrap();
 
     let (mut client, mut server) = make_pair(
-        "invalid-root-1-key.pem",
-        "invalid-root-1-ca.pem",
-        "invalid-root-2-ca.pem",
-        "invalid-root-1",
+        format!("{}-key.pem", name1).as_str(),
+        format!("{}-ca.pem", name1).as_str(),
+        format!("{}-ca.pem", name2).as_str(),
+        name2.as_str(),
     );
     assert_eq!(true, client.is_handshaking());
 

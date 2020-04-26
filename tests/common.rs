@@ -1,7 +1,9 @@
 extern crate assert_cmd;
+extern crate rand;
 extern crate rustls;
 extern crate webpki;
 
+use rand::Rng;
 use rustls::{internal::pemfile, ClientSession, ServerSession};
 use std::io::{Read, Write};
 use std::sync::Arc;
@@ -30,6 +32,20 @@ pub fn make_pair(key: &str, cert: &str, root: &str, name: &str) -> (ClientSessio
     let server = rustls::ServerSession::new(&server_cfg);
 
     (client, server)
+}
+
+pub fn unique_name(head: &str) -> String {
+    const CHARSET: &[u8] = b"abcdefghijklmnopqrstuvwzyz012345679";
+
+    let mut rng = rand::thread_rng();
+    let tail: String = (0..10)
+        .map(|_| {
+            let idx = rng.gen_range(0, CHARSET.len());
+            CHARSET[idx] as char
+        })
+        .collect();
+
+    format!("{}-{}", head, tail)
 }
 
 // represent a connected session, inspired and simplified from rustls test sets
