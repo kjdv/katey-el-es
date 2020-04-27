@@ -99,6 +99,7 @@ fn tree(args: &ArgMatches) {
 
     let hosts: Vec<&str> = args.values_of("hosts").unwrap().collect();
     for host in hosts.iter() {
+        // to do, this wastes by reading the same ca in a loop, the same one we have just written
         do_sign(ca, host);
     }
 }
