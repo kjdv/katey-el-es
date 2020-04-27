@@ -25,14 +25,14 @@ pub fn assert_valid_cert(filename: &str) {
     assert_eq!(1, certs.len(), "expected 1 cert");
 }
 
-pub fn make_pair(key: &str, cert: &str, root: &str, name: &str) -> (ClientSession, ServerSession) {
-    let server_cfg = Arc::new(make_server_config(&key, &cert, &root));
-    let client_cfg = Arc::new(make_client_config(&root));
+pub fn make_server(key: &str, cert: &str, root: &str) -> ServerSession {
+    let cfg = Arc::new(make_server_config(&key, &cert, &root));
+    rustls::ServerSession::new(&cfg)
+}
 
-    let client = rustls::ClientSession::new(&client_cfg, dns_name(name));
-    let server = rustls::ServerSession::new(&server_cfg);
-
-    (client, server)
+pub fn make_client(key: &str, cert: &str, root: &str, name: &str) -> ClientSession {
+    let cfg = Arc::new(make_client_config(&key, &cert, &root));
+    rustls::ClientSession::new(&cfg, dns_name(name))
 }
 
 pub fn unique_name(head: &str) -> String {
@@ -117,13 +117,17 @@ fn make_server_config(key: &str, cert: &str, root: &str) -> rustls::ServerConfig
     cfg
 }
 
-fn make_client_config(filename: &str) -> rustls::ClientConfig {
-    let root = load_file(filename);
+fn make_client_config(key: &str, cert: &str, root: &str) -> rustls::ClientConfig {
+    let key = read_key(key);
+    let cert = read_certs(cert);
+    let root = load_file(root);
+
     let mut cfg = rustls::ClientConfig::new();
     let mut reader = std::io::BufReader::new(root.as_bytes());
     cfg.root_store
         .add_pem_file(&mut reader)
         .expect("add pem file");
+    cfg.set_single_client_cert(cert, key).expect("setting single cert");
     cfg
 }
 

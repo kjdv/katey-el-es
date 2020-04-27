@@ -87,12 +87,17 @@ fn server_config_is_usable() {
         .ok()
         .unwrap();
 
-    let (mut client, mut server) = make_pair(
+    let mut server = make_server(
         format!("{}-key.pem", host).as_str(),
         format!("{}-cert.pem", host).as_str(),
+        format!("{}-cert.pem", ca).as_str());
+
+    let mut client = make_client(
+        format!("{}-key.pem", client).as_str(),
+        format!("{}-cert.pem", client).as_str(),
         format!("{}-cert.pem", ca).as_str(),
-        host.as_str(),
-    );
+        host.as_str());
+
     assert_eq!(true, client.is_handshaking());
 
     client
@@ -112,15 +117,50 @@ fn client_rejects_bad_ca() {
         .unwrap();
     certgen(&["root", ca.as_str()]).ok().unwrap();
 
-    let (mut client, mut server) = make_pair(
+    let mut server = make_server(
+        format!("{}-key.pem", host).as_str(),
+        format!("{}-cert.pem", host).as_str(),
+        format!("{}-cert.pem", bad_ca).as_str());
+
+    let mut client = make_client(
         format!("{}-key.pem", host).as_str(),
         format!("{}-cert.pem", host).as_str(),
         format!("{}-cert.pem", ca).as_str(),
-        host.as_str(),
-    );
+        host.as_str());
+
     assert_eq!(true, client.is_handshaking());
 
     client
         .complete_io(&mut OtherSession { sess: &mut server })
+        .expect_err("should reject");
+}
+
+#[test]
+fn server_rejects_bad_ca() {
+    let ca = unique_name("valid-root");
+    let bad_ca = unique_name("invalid-root");
+    let host = unique_name("valid-host");
+    let client = unique_name("invalid-client");
+
+    certgen(&["tree", ca.as_str(), host.as_str()])
+        .ok()
+        .unwrap();
+    certgen(&["tree", bad_ca.as_str(), client.as_str()]).ok().unwrap();
+
+    let mut server = make_server(
+        format!("{}-key.pem", host).as_str(),
+        format!("{}-cert.pem", host).as_str(),
+        format!("{}-cert.pem", ca).as_str());
+
+    let mut client = make_client(
+        format!("{}-key.pem", client).as_str(),
+        format!("{}-cert.pem", client).as_str(),
+        format!("{}-cert.pem", ca).as_str(),
+        host.as_str());
+
+    assert_eq!(true, client.is_handshaking());
+
+    server
+        .complete_io(&mut OtherSession { sess: &mut client })
         .expect_err("should reject");
 }
