@@ -127,7 +127,8 @@ fn make_client_config(key: &str, cert: &str, root: &str) -> rustls::ClientConfig
     cfg.root_store
         .add_pem_file(&mut reader)
         .expect("add pem file");
-    cfg.set_single_client_cert(cert, key).expect("setting single cert");
+    cfg.set_single_client_cert(cert, key)
+        .expect("setting single cert");
     cfg
 }
 

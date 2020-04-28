@@ -90,13 +90,15 @@ fn server_config_is_usable() {
     let mut server = make_server(
         format!("{}-key.pem", host).as_str(),
         format!("{}-cert.pem", host).as_str(),
-        format!("{}-cert.pem", ca).as_str());
+        format!("{}-cert.pem", ca).as_str(),
+    );
 
     let mut client = make_client(
         format!("{}-key.pem", client).as_str(),
         format!("{}-cert.pem", client).as_str(),
         format!("{}-cert.pem", ca).as_str(),
-        host.as_str());
+        host.as_str(),
+    );
 
     assert_eq!(true, client.is_handshaking());
 
@@ -120,13 +122,15 @@ fn client_rejects_bad_ca() {
     let mut server = make_server(
         format!("{}-key.pem", host).as_str(),
         format!("{}-cert.pem", host).as_str(),
-        format!("{}-cert.pem", bad_ca).as_str());
+        format!("{}-cert.pem", bad_ca).as_str(),
+    );
 
     let mut client = make_client(
         format!("{}-key.pem", host).as_str(),
         format!("{}-cert.pem", host).as_str(),
         format!("{}-cert.pem", ca).as_str(),
-        host.as_str());
+        host.as_str(),
+    );
 
     assert_eq!(true, client.is_handshaking());
 
@@ -142,21 +146,23 @@ fn server_rejects_bad_ca() {
     let host = unique_name("valid-host");
     let client = unique_name("invalid-client");
 
-    certgen(&["tree", ca.as_str(), host.as_str()])
+    certgen(&["tree", ca.as_str(), host.as_str()]).ok().unwrap();
+    certgen(&["tree", bad_ca.as_str(), client.as_str()])
         .ok()
         .unwrap();
-    certgen(&["tree", bad_ca.as_str(), client.as_str()]).ok().unwrap();
 
     let mut server = make_server(
         format!("{}-key.pem", host).as_str(),
         format!("{}-cert.pem", host).as_str(),
-        format!("{}-cert.pem", ca).as_str());
+        format!("{}-cert.pem", ca).as_str(),
+    );
 
     let mut client = make_client(
         format!("{}-key.pem", client).as_str(),
         format!("{}-cert.pem", client).as_str(),
         format!("{}-cert.pem", ca).as_str(),
-        host.as_str());
+        host.as_str(),
+    );
 
     assert_eq!(true, client.is_handshaking());
 
