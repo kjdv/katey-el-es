@@ -1,0 +1,17 @@
+[package]
+name = "certgen"
+version = "0.1.0"
+authors = ["Klaas de Vries <klaasjacobdevries@gmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+clap = "^2.33.0"
+rcgen = { version = "^0.8.1", features = ["pem", "x509-parser"] }
+
+[dev-dependencies]
+rustls = "^0.17.0"
+webpki = "^0.21.2"
+assert_cmd = "^1.0.1"
+rand = "^0.7.3"
