@@ -723,6 +723,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "tcp_client"
+version = "0.1.0"
+dependencies = [
+ "clap",
+]
+
+[[package]]
 name = "tcp_echo"
 version = "0.1.0"
 dependencies = [

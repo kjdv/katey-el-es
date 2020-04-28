@@ -76,10 +76,10 @@ fn single() {
 fn interleaved() {
     let _e = Echo::new(3457);
     let mut client1 = Client::new(3457);
-//    let mut client2 = Client::new(3459);
+    let mut client2 = Client::new(3457);
 
     assert_eq!("foo".to_string(), client1.communicate("foo"));
-    //assert_eq!("bar".to_string(), client2.communicate("bar"));
+    assert_eq!("bar".to_string(), client2.communicate("bar"));
     assert_eq!("baz".to_string(), client1.communicate("baz"));
-//    assert_eq!("baz".to_string(), client2.communicate("baz"));
+    assert_eq!("baz".to_string(), client2.communicate("baz"));
 }
