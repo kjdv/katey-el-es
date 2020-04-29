@@ -1,10 +1,14 @@
 extern crate clap;
+extern crate tokio;
+extern crate futures;
 
-use std::io::{Read, Write};
+use tokio::net::{TcpStream};
+use tokio::io::{stdin, stdout, copy};
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
-fn main() -> Result<()> {
+#[tokio::main]
+async fn main() -> Result<()> {
     let args = clap::App::new("server")
         .author("Klaas de Vries")
         .about("simple telnet-like tcp client")
@@ -26,38 +30,20 @@ fn main() -> Result<()> {
 
     let address = format!("{}:{}", args.value_of("host").unwrap(), args.value_of("port").unwrap());
 
-    handle(&address)?;
+    handle(&address).await?;
 
     Ok(())
 }
 
-fn handle(address: &str) -> Result<()> {
-    let mut stream = std::net::TcpStream::connect(address)?;
-    let mut buf = [0; 4096];
+async fn handle(address: &str) -> Result<()> {
+    let mut stream = TcpStream::connect(address).await?;
+    let (mut rx, mut tx) = stream.split();
+    let mut input = stdin();
+    let mut output = stdout();
 
-    loop {
-        let line = prompt()?;
-        if line.is_empty() {
-            break;
-        }
+    let to = copy(&mut input, &mut tx);
+    let from = copy(&mut rx, &mut output);
 
-        stream.write_all(line.as_bytes())?;
-        stream.flush()?;
-        let n = stream.read(&mut buf)?;
-
-        if n == 0 {
-            break;
-        }
-
-        std::io::stdout().write_all(&buf[0..n])?;
-        std::io::stdout().flush()?;
-    }
-
+    futures::future::try_join(to, from).await?;
     Ok(())
-}
-
-fn prompt() -> Result<String> {
-    let mut line = String::new();
-    std::io::stdin().read_line(&mut line)?;
-    Ok(line)
 }
