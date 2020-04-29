@@ -1,26 +1,38 @@
-use std::io::{Read, Write};
+use std::io::Read;
 use std::process::{Child, Command, Stdio};
 
-struct Echo {
+struct Fib {
     proc: Child,
 }
 
-impl Echo {
-    fn new(port: u16) -> Echo {
+impl Fib {
+    fn new(port: u16, n: u32) -> Fib {
         let cargo = env!("CARGO");
         let port = format!("{}", port);
+        let n = format!("{}", n);
         let proc = Command::new(cargo)
-            .args(&["run", "--bin", "tcp_echo", "--", "--port", port.as_str()])
+            .args(&[
+                "run",
+                "--bin",
+                "tcp_fibonacci",
+                "--",
+                "--port",
+                port.as_str(),
+                "-n",
+                n.as_str(),
+                "--interval",
+                "0.001",
+            ])
             .stdout(Stdio::null())
             .stderr(Stdio::null())
             .spawn()
-            .expect("start echo server");
+            .expect("start fibonacci server");
 
-        Echo { proc }
+        Fib { proc }
     }
 }
 
-impl Drop for Echo {
+impl Drop for Fib {
     fn drop(&mut self) {
         let _ = self.proc.kill();
         let _ = self.proc.wait();
@@ -48,9 +60,7 @@ impl Client {
         panic!("failed to connect");
     }
 
-    fn communicate(&mut self, input: &str) -> String {
-        self.stream.write_all(input.as_bytes()).expect("write");
-
+    fn get(&mut self) -> String {
         let mut buf = [0; 4096];
         let size = self.stream.read(&mut buf).expect("read");
         String::from_utf8_lossy(&buf[0..size]).to_string()
@@ -59,21 +69,26 @@ impl Client {
 
 #[test]
 fn single() {
-    let _e = Echo::new(3458);
-    let mut client = Client::new(3458);
+    let _f = Fib::new(3460, 10);
+    let mut client = Client::new(3460);
 
-    assert_eq!("foo".to_string(), client.communicate("foo"));
-    assert_eq!("bar".to_string(), client.communicate("bar"));
+    for i in &[0, 1, 1, 2, 3, 5, 8, 13, 21, 34] {
+        let expect = format!("{}\n", i);
+
+        assert_eq!(expect, client.get());
+    }
 }
 
 #[test]
 fn interleaved() {
-    let _e = Echo::new(3457);
-    let mut client1 = Client::new(3457);
-    let mut client2 = Client::new(3457);
+    let _f = Fib::new(3461, 10);
+    let mut client1 = Client::new(3461);
+    let mut client2 = Client::new(3461);
 
-    assert_eq!("foo".to_string(), client1.communicate("foo"));
-    assert_eq!("bar".to_string(), client2.communicate("bar"));
-    assert_eq!("baz".to_string(), client1.communicate("baz"));
-    assert_eq!("baz".to_string(), client2.communicate("baz"));
+    for i in &[0, 1, 1, 2, 3, 5, 8, 13, 21, 34] {
+        let expect = format!("{}\n", i);
+
+        assert_eq!(expect, client1.get());
+        assert_eq!(expect, client2.get());
+    }
 }

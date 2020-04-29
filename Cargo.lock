@@ -775,6 +775,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "tcp_fibonacci"
+version = "0.1.0"
+dependencies = [
+ "clap",
+ "log",
+ "simple_logger",
+ "tokio",
+]
+
+[[package]]
 name = "textwrap"
 version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -816,6 +826,7 @@ dependencies = [
  "mio",
  "mio-uds",
  "pin-project-lite",
+ "slab",
  "tokio-macros",
 ]
 

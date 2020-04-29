@@ -9,7 +9,7 @@ type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    let args = clap::App::new("server")
+    let args = clap::App::new("echo server")
         .author("Klaas de Vries")
         .about("simple tcp echo server")
         .arg(
@@ -71,6 +71,6 @@ async fn handle(mut stream: TcpStream) {
     let (mut rx, mut tx) = stream.split();
     match tokio::io::copy(&mut rx, &mut tx).await {
         Ok(_) => log::info!("done, closing handler"),
-        Err(e) => log::error!("error: {}", e)
+        Err(e) => log::error!("error: {}", e),
     }
 }
