@@ -1,20 +1,19 @@
-extern crate subprocess;
-
 use std::io::{Read, Write};
+use std::process::{Command, Child, Stdio};
 
 struct Echo {
-    proc: subprocess::Popen
+    proc: Child
 }
 
 impl Echo {
     fn new(port: u16) -> Echo {
         let cargo = env!("CARGO");
         let port = format!("{}", port);
-        let proc = subprocess::Exec::cmd(cargo)
+        let proc = Command::new(cargo)
             .args(&["run", "--bin", "tcp_echo", "--", "--port", port.as_str()])
-            .stdout(subprocess::Redirection::Pipe)
-            .stderr(subprocess::Redirection::Merge)
-            .popen()
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .spawn()
             .expect("start echo server");
 
         Echo {
@@ -25,7 +24,6 @@ impl Echo {
 
 impl Drop for Echo {
     fn drop(&mut self) {
-        let _ = self.proc.terminate();
         let _ = self.proc.kill();
         let _ = self.proc.wait();
     }
