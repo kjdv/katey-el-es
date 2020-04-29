@@ -3,7 +3,6 @@ extern crate log;
 extern crate simple_logger;
 extern crate tokio;
 
-use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream};
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
@@ -60,43 +59,18 @@ async fn serve(address: &str) -> Result<()> {
     log::info!("listening on {:?}", address);
 
     loop {
-        let (socket, _) = listener.accept().await?;
+        let (stream, _) = listener.accept().await?;
 
         tokio::spawn(async move {
-            handle(socket).await;
+            handle(stream).await;
         });
     }
 }
 
-async fn handle(mut socket: TcpStream) {
-    let mut buf = [0; 4096];
-    loop {
-        log::debug!("waiting for read");
-
-        let n = match socket.read(&mut buf).await {
-            Ok(n) => {
-                log::debug!("read {} bytes", n);
-                n
-            }
-            Err(e) => {
-                log::error!("{}", e);
-                return;
-            }
-        };
-
-        if n == 0 {
-            log::info!("empty read, exiting handler");
-            return;
-        }
-
-        match socket.write_all(&buf[0..n]).await {
-            Ok(_) => {
-                log::debug!("written {} bytes", n);
-            }
-            Err(e) => {
-                log::error!("{}", e);
-                return;
-            }
-        }
+async fn handle(mut stream: TcpStream) {
+    let (mut rx, mut tx) = stream.split();
+    match tokio::io::copy(&mut rx, &mut tx).await {
+        Ok(_) => log::info!("done, closing handler"),
+        Err(e) => log::error!("error: {}", e)
     }
 }
