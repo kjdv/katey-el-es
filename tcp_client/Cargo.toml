@@ -8,5 +8,6 @@ edition = "2018"
 
 [dependencies]
 clap = "^2.33.0"
-tokio = { version = "^0.2.20", features = ["net", "io-std", "macros"] }
+tokio = { version = "^0.2.20", features = ["net", "rt-core", "io-std", "macros"] }
 futures = "^0.3.4"
+string-error = "^0.1.0"
