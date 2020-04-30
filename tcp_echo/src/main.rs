@@ -59,10 +59,12 @@ async fn serve(address: &str) -> Result<()> {
     log::info!("listening on {:?}", address);
 
     loop {
-        let (stream, _) = listener.accept().await?;
+        let (stream, remote_address) = listener.accept().await?;
+        log::info!("accepted connection from {}", remote_address);
 
         tokio::spawn(async move {
             handle(stream).await;
+            log::info!("closing connection from {}", remote_address);
         });
     }
 }
@@ -70,7 +72,7 @@ async fn serve(address: &str) -> Result<()> {
 async fn handle(mut stream: TcpStream) {
     let (mut rx, mut tx) = stream.split();
     match tokio::io::copy(&mut rx, &mut tx).await {
-        Ok(_) => log::info!("done, closing handler"),
+        Ok(_) => (),
         Err(e) => log::error!("error: {}", e),
     }
 }

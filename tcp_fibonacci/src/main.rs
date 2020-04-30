@@ -83,12 +83,14 @@ async fn serve(address: &str, n: u32, delay: Duration) -> Result<()> {
     log::info!("listening on {:?}", address);
 
     loop {
-        let (stream, _) = listener.accept().await?;
+        let (stream, remote_address) = listener.accept().await?;
+        log::info!("accepted connection from {}", remote_address);
 
         tokio::spawn(async move {
             if let Err(e) = handle(stream, n, delay).await {
                 log::error!("{}", e);
             }
+            log::info!("closing connection from {}", remote_address);
         });
     }
 }
