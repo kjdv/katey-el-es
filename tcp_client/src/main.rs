@@ -37,7 +37,9 @@ async fn main() -> Result<()> {
     );
     handle(&address).await?;
 
-    Ok(())
+    // kludge. Tokio' stdin is implemented using a background thread, and won't join with normal
+    // exit, we have to exit like this to avoid a hang
+    std::process::exit(0);
 }
 
 async fn handle(address: &str) -> Result<()> {
