@@ -39,11 +39,11 @@ impl Client {
     }
 
     fn try_connect(address: &str) -> std::net::TcpStream {
-        for _ in 0..1000 {
+        for _ in 0..6000 {
             if let Ok(stream) = std::net::TcpStream::connect(address) {
                 return stream;
             }
-            std::thread::sleep(std::time::Duration::from_millis(1));
+            std::thread::sleep(std::time::Duration::from_millis(10));
         }
         panic!("failed to connect");
     }
