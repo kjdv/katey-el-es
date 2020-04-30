@@ -9,8 +9,7 @@ use tokio::net::TcpStream;
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
-#[tokio::main]
-async fn main() -> Result<()> {
+fn main() -> Result<()> {
     let args = clap::App::new("server")
         .author("Klaas de Vries")
         .about("simple telnet-like tcp client")
@@ -35,11 +34,20 @@ async fn main() -> Result<()> {
         args.value_of("host").unwrap(),
         args.value_of("port").unwrap()
     );
-    handle(&address).await?;
 
-    // kludge. Tokio' stdin is implemented using a background thread, and won't join with normal
-    // exit, we have to exit like this to avoid a hang
-    std::process::exit(0);
+    let mut runtime = tokio::runtime::Builder::new()
+        .enable_all()
+        .basic_scheduler()
+        .build()?;
+
+    runtime.block_on(async {
+        handle(&address).await
+    })?;
+
+    // kludge: tokio's stdin is implemented using a background thread, and needs explicit shutdown
+    runtime.shutdown_timeout(std::time::Duration::from_secs_f64(0.2));
+
+    Ok(())
 }
 
 async fn handle(address: &str) -> Result<()> {
