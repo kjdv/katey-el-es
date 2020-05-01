@@ -1,11 +1,12 @@
 extern crate assert_cmd;
+extern crate certutils;
 extern crate rand;
 extern crate rcgen;
 extern crate rustls;
 extern crate webpki;
 
 use rand::Rng;
-use rustls::{internal::pemfile, ClientSession, ServerSession};
+use rustls::{ClientSession, ServerSession};
 use std::io::{Read, Write};
 use std::sync::Arc;
 
@@ -17,21 +18,27 @@ pub fn certgen(args: &[&str]) -> assert_cmd::Command {
 }
 
 pub fn assert_valid_key(filename: &str) {
-    read_key(&filename);
+    certutils::read_key(&file_path(&filename)).expect("valid key");
 }
 
 pub fn assert_valid_cert(filename: &str) {
-    let certs = read_certs(&filename);
+    let certs = certutils::read_certs(&file_path(&filename)).expect("valid cert");
     assert_eq!(1, certs.len(), "expected 1 cert");
 }
 
 pub fn make_server(key: &str, cert: &str, root: &str) -> ServerSession {
-    let cfg = Arc::new(make_server_config(&key, &cert, &root));
+    let cfg = Arc::new(
+        certutils::make_server_config(&file_path(&cert), &file_path(&key), Some(&file_path(&root)))
+            .expect("server config"),
+    );
     rustls::ServerSession::new(&cfg)
 }
 
 pub fn make_client(key: &str, cert: &str, root: &str, name: &str) -> ClientSession {
-    let cfg = Arc::new(make_client_config(&key, &cert, &root));
+    let cfg = Arc::new(
+        certutils::make_client_config(&file_path(&cert), &file_path(&key), &file_path(&root))
+            .expect("client config"),
+    );
     rustls::ClientSession::new(&cfg, dns_name(name))
 }
 
@@ -81,55 +88,10 @@ fn current_dir() -> std::path::PathBuf {
     path.to_path_buf()
 }
 
-fn load_file(filename: &str) -> String {
+fn file_path(filename: &str) -> String {
     let mut path = current_dir();
     path.push(filename);
-    let mut file = std::fs::File::open(path).expect("file exists");
-    let mut content = String::new();
-    file.read_to_string(&mut content).expect("file is readable");
-    content
-}
-
-fn read_key(filename: &str) -> rustls::PrivateKey {
-    let pem = load_file(filename);
-    let mut reader = std::io::BufReader::new(pem.as_bytes());
-    let keys = pemfile::pkcs8_private_keys(&mut reader).expect("cant load keys");
-    assert_eq!(1, keys.len(), "expected 1 key");
-    keys[0].clone()
-}
-
-fn read_certs(filename: &str) -> Vec<rustls::Certificate> {
-    let cert = load_file(filename);
-    let mut reader = std::io::BufReader::new(cert.as_bytes());
-    pemfile::certs(&mut reader).expect("cant load cert file")
-}
-
-fn make_server_config(key: &str, cert: &str, root: &str) -> rustls::ServerConfig {
-    let mut store = rustls::RootCertStore { roots: vec![] };
-    for c in read_certs(root).iter() {
-        store.add(c).expect("adding root cert");
-    }
-
-    let auth = rustls::AllowAnyAuthenticatedClient::new(store);
-    let mut cfg = rustls::ServerConfig::new(auth);
-    cfg.set_single_cert(read_certs(cert), read_key(key))
-        .expect("setting cert and key");
-    cfg
-}
-
-fn make_client_config(key: &str, cert: &str, root: &str) -> rustls::ClientConfig {
-    let key = read_key(key);
-    let cert = read_certs(cert);
-    let root = load_file(root);
-
-    let mut cfg = rustls::ClientConfig::new();
-    let mut reader = std::io::BufReader::new(root.as_bytes());
-    cfg.root_store
-        .add_pem_file(&mut reader)
-        .expect("add pem file");
-    cfg.set_single_client_cert(cert, key)
-        .expect("setting single cert");
-    cfg
+    path.to_str().unwrap().to_string()
 }
 
 fn dns_name(name: &str) -> webpki::DNSNameRef<'_> {

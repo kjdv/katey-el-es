@@ -1,6 +1,7 @@
 [workspace]
 
 members = [
+    "certutils",
     "certgen",
     "tcp_echo",
     "tcp_client",

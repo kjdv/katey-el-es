@@ -1,21 +1,20 @@
+extern crate certutils;
 extern crate clap;
+extern crate futures;
 extern crate log;
 extern crate simple_logger;
 extern crate tokio;
-extern crate string_error;
 extern crate tokio_rustls;
-extern crate futures;
 
 use std::str::FromStr;
-use tokio_rustls::TlsAcceptor;
-use tokio_rustls::server::TlsStream;
 use tokio_rustls::rustls;
+use tokio_rustls::server::TlsStream;
+use tokio_rustls::TlsAcceptor;
 
-use std::io::Read;
-use tokio::net::{TcpListener, TcpStream};
-use tokio::io::{AsyncRead, AsyncWrite, copy, split};
-use std::sync::Arc;
 use futures::future::try_select;
+use std::sync::Arc;
+use tokio::io::{copy, split, AsyncRead, AsyncWrite};
+use tokio::net::{TcpListener, TcpStream};
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
@@ -84,12 +83,13 @@ async fn main() -> Result<()> {
 
     log::debug!("arguments are config file is {:?}", args);
 
-    let listen_address = format!(
-        "0.0.0.0:{}",
-        args.value_of("listen").unwrap()
-    );
+    let listen_address = format!("0.0.0.0:{}", args.value_of("listen").unwrap());
     let forward_address = args.value_of("forward").unwrap();
-    log::info!("setting up to listen at {} and forward to {}", listen_address, forward_address);
+    log::info!(
+        "setting up to listen at {} and forward to {}",
+        listen_address,
+        forward_address
+    );
 
     let config = make_config(&args)?;
 
@@ -98,7 +98,11 @@ async fn main() -> Result<()> {
     Ok(())
 }
 
-async fn serve(config: rustls::ServerConfig, listen_address: &str, forward_address: &str) -> Result<()> {
+async fn serve(
+    config: rustls::ServerConfig,
+    listen_address: &str,
+    forward_address: &str,
+) -> Result<()> {
     let forward_address = String::from_str(forward_address)?;
     let acceptor = TlsAcceptor::from(Arc::new(config));
     let mut listener = TcpListener::bind(listen_address).await?;
@@ -113,15 +117,13 @@ async fn serve(config: rustls::ServerConfig, listen_address: &str, forward_addre
 
         tokio::spawn(async move {
             match acceptor.accept(stream).await {
-                Ok(stream) => {
-                    match TcpStream::connect(&forward_address).await {
-                        Ok(forward) => {
-                            handle(stream, forward).await;
-                            log::info!("closing connection from {}", remote_address);
-                        },
-                        Err(e) => {
-                            log::error!("could not forward: {}", e);
-                        }
+                Ok(stream) => match TcpStream::connect(&forward_address).await {
+                    Ok(forward) => {
+                        handle(stream, forward).await;
+                        log::info!("closing connection from {}", remote_address);
+                    }
+                    Err(e) => {
+                        log::error!("could not forward: {}", e);
                     }
                 },
                 Err(e) => {
@@ -133,8 +135,9 @@ async fn serve(config: rustls::ServerConfig, listen_address: &str, forward_addre
 }
 
 async fn handle<IO>(from_stream: TlsStream<IO>, to_stream: TcpStream)
-    where IO: AsyncRead + AsyncWrite + std::marker::Unpin {
-
+where
+    IO: AsyncRead + AsyncWrite + std::marker::Unpin,
+{
     let (mut from_rx, mut from_tx) = split(from_stream);
     let (mut to_rx, mut to_tx) = split(to_stream);
 
@@ -157,50 +160,13 @@ fn make_config(args: &clap::ArgMatches) -> Result<rustls::ServerConfig> {
 
     log::info!("using certificate {} with private key {}", cert, key);
 
-    let auth = if let Some(root_path) = args.value_of("client_auth") {
-        log::info!("enabling client authentication using root ca's in {}", root_path);
-
-        let mut store = rustls::RootCertStore { roots: vec![] };
-
-        let certs = read_certs(root_path)?;
-        for c in certs.iter() {
-            store.add(c)?;
-        }
-        rustls::AllowAnyAuthenticatedClient::new(store)
-    } else {
-        log::info!("not enabling client authentication");
-        rustls::NoClientAuth::new()
-    };
-
-    let mut cfg = rustls::ServerConfig::new(auth);
-    let cert = read_certs(cert)?;
-    let key = read_key(key)?;
-    cfg.set_single_cert(cert, key)?;
-    Ok(cfg)
-}
-
-fn read_key(filename: &str) -> Result<rustls::PrivateKey> {
-    let pem = load_file(filename)?;
-    let mut reader = std::io::BufReader::new(pem.as_bytes());
-    let keys = rustls::internal::pemfile::pkcs8_private_keys(&mut reader)
-        .map_err(|_| string_error::new_err("failed to load key"))?;
-
-    match keys.len() {
-        1 => Ok(keys[0].clone()),
-        _ => Err(string_error::new_err("expected a single key"))
+    let maybe_client_auth = args.value_of("client_auth");
+    if let Some(root_path) = maybe_client_auth {
+        log::info!(
+            "enabling client authentication using root ca's in {}",
+            root_path
+        );
     }
-}
 
-fn read_certs(filename: &str) -> Result<Vec<rustls::Certificate>> {
-    let cert = load_file(filename)?;
-    let mut reader = std::io::BufReader::new(cert.as_bytes());
-    rustls::internal::pemfile::certs(&mut reader)
-        .map_err(|_| string_error::new_err("failed to load certs"))
-}
-
-fn load_file(filename: &str) -> Result<String> {
-    let mut file = std::fs::File::open(filename)?;
-    let mut content = String::new();
-    file.read_to_string(&mut content)?;
-    Ok(content)
+    certutils::make_server_config(key, cert, maybe_client_auth)
 }

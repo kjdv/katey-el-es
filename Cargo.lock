@@ -92,11 +92,20 @@ name = "certgen"
 version = "0.1.0"
 dependencies = [
  "assert_cmd",
+ "certutils",
  "clap",
  "rand",
  "rcgen",
  "rustls",
  "webpki",
+]
+
+[[package]]
+name = "certutils"
+version = "0.1.0"
+dependencies = [
+ "rustls",
+ "string-error",
 ]
 
 [[package]]
@@ -314,11 +323,11 @@ dependencies = [
 name = "katey-el-es"
 version = "0.1.0"
 dependencies = [
+ "certutils",
  "clap",
  "futures",
  "log",
  "simple_logger",
- "string-error",
  "tokio",
  "tokio-rustls",
 ]
