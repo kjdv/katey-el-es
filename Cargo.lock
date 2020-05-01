@@ -315,8 +315,8 @@ name = "katey-el-es"
 version = "0.1.0"
 dependencies = [
  "clap",
+ "futures",
  "log",
- "rustls",
  "simple_logger",
  "string-error",
  "tokio",

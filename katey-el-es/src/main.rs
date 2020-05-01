@@ -2,11 +2,20 @@ extern crate clap;
 extern crate log;
 extern crate simple_logger;
 extern crate tokio;
-extern crate rustls;
 extern crate string_error;
+extern crate tokio_rustls;
+extern crate futures;
+
+use std::str::FromStr;
+use tokio_rustls::TlsAcceptor;
+use tokio_rustls::server::TlsStream;
+use tokio_rustls::rustls;
 
 use std::io::Read;
 use tokio::net::{TcpListener, TcpStream};
+use tokio::io::{AsyncRead, AsyncWrite, copy, split};
+use std::sync::Arc;
+use futures::future::try_select;
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
@@ -84,7 +93,62 @@ async fn main() -> Result<()> {
 
     let config = make_config(&args)?;
 
+    serve(config, &listen_address, &forward_address).await?;
+
     Ok(())
+}
+
+async fn serve(config: rustls::ServerConfig, listen_address: &str, forward_address: &str) -> Result<()> {
+    let forward_address = String::from_str(forward_address)?;
+    let acceptor = TlsAcceptor::from(Arc::new(config));
+    let mut listener = TcpListener::bind(listen_address).await?;
+    log::info!("listening on {:?}", listen_address);
+
+    loop {
+        let (stream, remote_address) = listener.accept().await?;
+        log::info!("accepted connection from {}", remote_address);
+
+        let acceptor = acceptor.clone();
+        let forward_address = forward_address.clone();
+
+        tokio::spawn(async move {
+            match acceptor.accept(stream).await {
+                Ok(stream) => {
+                    match TcpStream::connect(&forward_address).await {
+                        Ok(forward) => {
+                            handle(stream, forward).await;
+                            log::info!("closing connection from {}", remote_address);
+                        },
+                        Err(e) => {
+                            log::error!("could not forward: {}", e);
+                        }
+                    }
+                },
+                Err(e) => {
+                    log::warn!("not accepted: {}", e);
+                }
+            }
+        });
+    }
+}
+
+async fn handle<IO>(from_stream: TlsStream<IO>, to_stream: TcpStream)
+    where IO: AsyncRead + AsyncWrite + std::marker::Unpin {
+
+    let (mut from_rx, mut from_tx) = split(from_stream);
+    let (mut to_rx, mut to_tx) = split(to_stream);
+
+    let to = copy(&mut from_rx, &mut to_tx);
+    let from = copy(&mut to_rx, &mut from_tx);
+
+    match try_select(to, from).await {
+        Ok(_) => {
+            log::debug!("clean exit");
+        }
+        Err(_) => {
+            log::error!("closing due to error");
+        }
+    };
 }
 
 fn make_config(args: &clap::ArgMatches) -> Result<rustls::ServerConfig> {
