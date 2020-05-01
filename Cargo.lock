@@ -311,6 +311,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "katey-el-es"
+version = "0.1.0"
+dependencies = [
+ "clap",
+ "log",
+ "rustls",
+ "simple_logger",
+ "string-error",
+ "tokio",
+ "tokio-rustls",
+]
+
+[[package]]
 name = "kernel32-sys"
 version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -839,6 +852,18 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
+]
+
+[[package]]
+name = "tokio-rustls"
+version = "0.13.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4adb8b3e5f86b707f1b54e7c15b6de52617a823608ccda98a15d3a24222f265a"
+dependencies = [
+ "futures-core",
+ "rustls",
+ "tokio",
+ "webpki",
 ]
 
 [[package]]

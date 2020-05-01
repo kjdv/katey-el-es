@@ -1,0 +1,16 @@
+[package]
+name = "katey-el-es"
+version = "0.1.0"
+authors = ["Klaas de Vries <klaasjacobdevries@gmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+clap = "^2.33.0"
+tokio = { version = "^0.2.20", features = ["net", "io-util", "rt-core", "macros"] }
+log = "^0.4.8"
+simple_logger = "^1.5.0"
+rustls = "^0.17.0"
+tokio-rustls = "^0.13.0"
+string-error = "^0.1.0"
