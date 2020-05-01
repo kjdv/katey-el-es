@@ -40,9 +40,7 @@ fn main() -> Result<()> {
         .basic_scheduler()
         .build()?;
 
-    runtime.block_on(async {
-        handle(&address).await
-    })?;
+    runtime.block_on(async { handle(&address).await })?;
 
     // kludge: tokio's stdin is implemented using a background thread, and needs explicit shutdown
     runtime.shutdown_timeout(std::time::Duration::from_secs_f64(0.2));

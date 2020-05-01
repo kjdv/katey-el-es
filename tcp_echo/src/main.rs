@@ -71,8 +71,7 @@ async fn serve(address: &str) -> Result<()> {
 
 async fn handle(mut stream: TcpStream) {
     let (mut rx, mut tx) = stream.split();
-    match tokio::io::copy(&mut rx, &mut tx).await {
-        Ok(_) => (),
-        Err(e) => log::error!("error: {}", e),
+    if let Err(e) = tokio::io::copy(&mut rx, &mut tx).await {
+        log::error!("error: {}", e);
     }
 }
