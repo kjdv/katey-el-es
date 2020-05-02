@@ -9,7 +9,7 @@ edition = "2018"
 [dependencies]
 certutils = { path = "../certutils"}
 clap = "^2.33.0"
-tokio = { version = "^0.2.20", features = ["net", "io-util", "rt-core", "macros"] }
+tokio = { version = "^0.2.20", features = ["net", "io-util", "io-std", "rt-core", "macros"] }
 tokio-rustls = "^0.13.0"
 futures = "^0.3.4"
 string-error = "^0.1.0"
