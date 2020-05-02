@@ -28,17 +28,25 @@ pub fn make_server_config(
     Ok(cfg)
 }
 
-pub fn make_client_config(cert: &str, key: &str, root: &str) -> Result<rustls::ClientConfig> {
-    let key = read_key(key)?;
-    let cert = read_certs(cert)?;
+pub fn make_client_config(
+    root: &str,
+    cert: Option<&str>,
+    key: Option<&str>,
+) -> Result<rustls::ClientConfig> {
     let root = load_file(root)?;
 
     let mut cfg = rustls::ClientConfig::new();
     let mut reader = std::io::BufReader::new(root.as_bytes());
     cfg.root_store
         .add_pem_file(&mut reader)
-        .map_err(|_| string_error::new_err("failed to add to root store"))?;
-    cfg.set_single_client_cert(cert, key)?;
+        .map_err(|_| string_error::new_err("failed to add certificate to root store"))?;
+
+    if let Some(cert) = cert {
+        let cert = read_certs(cert)?;
+        let key = read_key(key.expect("certificate needs a key"))?;
+        cfg.set_single_client_cert(cert, key)?;
+    }
+
     Ok(cfg)
 }
 
@@ -50,7 +58,7 @@ pub fn read_key(filename: &str) -> Result<rustls::PrivateKey> {
 
     match keys.len() {
         1 => Ok(keys[0].clone()),
-        _ => Err(string_error::new_err("expected a single key")),
+        _ => Err(string_error::new_err("expected a single key in keyfile")),
     }
 }
 
@@ -58,7 +66,7 @@ pub fn read_certs(filename: &str) -> Result<Vec<rustls::Certificate>> {
     let cert = load_file(filename)?;
     let mut reader = std::io::BufReader::new(cert.as_bytes());
     rustls::internal::pemfile::certs(&mut reader)
-        .map_err(|_| string_error::new_err("failed to load certs"))
+        .map_err(|_| string_error::new_err("failed to load certificates"))
 }
 
 fn load_file(filename: &str) -> Result<String> {

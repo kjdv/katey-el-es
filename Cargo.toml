@@ -6,5 +6,6 @@ members = [
     "tcp_echo",
     "tcp_client",
     "tcp_fibonacci",
-    "katey-el-es"
+    "katey-el-es",
+    "katey-client"
 ]

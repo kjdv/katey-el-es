@@ -36,8 +36,12 @@ pub fn make_server(key: &str, cert: &str, root: &str) -> ServerSession {
 
 pub fn make_client(key: &str, cert: &str, root: &str, name: &str) -> ClientSession {
     let cfg = Arc::new(
-        certutils::make_client_config(&file_path(&cert), &file_path(&key), &file_path(&root))
-            .expect("client config"),
+        certutils::make_client_config(
+            &file_path(&root),
+            Some(&file_path(&cert)),
+            Some(&file_path(&key)),
+        )
+        .expect("client config"),
     );
     rustls::ClientSession::new(&cfg, dns_name(name))
 }
