@@ -58,13 +58,6 @@ async fn main() -> Result<()> {
                 .required(true)
         )
         .arg(
-            clap::Arg::with_name("root")
-                .help("path to the file containing the root certificates, in .pem format.")
-                .short("r")
-                .long("root")
-                .takes_value(true)
-        )
-        .arg(
             clap::Arg::with_name("client_auth")
                 .help("enable client authentication, takes the path to the root certificate store, in .pem format")
                 .short("a")
