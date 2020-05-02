@@ -9,3 +9,4 @@ edition = "2018"
 [dependencies]
 rustls = "^0.17.0"
 string-error = "^0.1.0"
+webpki = "^0.21.2"

@@ -3,7 +3,6 @@ extern crate certutils;
 extern crate rand;
 extern crate rcgen;
 extern crate rustls;
-extern crate webpki;
 
 use rand::Rng;
 use rustls::{ClientSession, ServerSession};
@@ -43,7 +42,7 @@ pub fn make_client(key: &str, cert: &str, root: &str, name: &str) -> ClientSessi
         )
         .expect("client config"),
     );
-    rustls::ClientSession::new(&cfg, dns_name(name))
+    rustls::ClientSession::new(&cfg, certutils::dns_name(name))
 }
 
 pub fn unique_name(head: &str) -> String {
@@ -96,8 +95,4 @@ fn file_path(filename: &str) -> String {
     let mut path = current_dir();
     path.push(filename);
     path.to_str().unwrap().to_string()
-}
-
-fn dns_name(name: &str) -> webpki::DNSNameRef<'_> {
-    webpki::DNSNameRef::try_from_ascii_str(name).unwrap()
 }

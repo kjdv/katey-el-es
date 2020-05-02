@@ -97,7 +97,6 @@ dependencies = [
  "rand",
  "rcgen",
  "rustls",
- "webpki",
 ]
 
 [[package]]
@@ -106,6 +105,7 @@ version = "0.1.0"
 dependencies = [
  "rustls",
  "string-error",
+ "webpki",
 ]
 
 [[package]]
@@ -325,6 +325,8 @@ version = "0.1.0"
 dependencies = [
  "certutils",
  "clap",
+ "futures",
+ "string-error",
  "tokio",
  "tokio-rustls",
 ]

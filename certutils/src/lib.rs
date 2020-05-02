@@ -69,6 +69,10 @@ pub fn read_certs(filename: &str) -> Result<Vec<rustls::Certificate>> {
         .map_err(|_| string_error::new_err("failed to load certificates"))
 }
 
+pub fn dns_name(name: &str) -> webpki::DNSNameRef<'_> {
+    webpki::DNSNameRef::try_from_ascii_str(name).unwrap()
+}
+
 fn load_file(filename: &str) -> Result<String> {
     let mut file = std::fs::File::open(filename)?;
     let mut content = String::new();
