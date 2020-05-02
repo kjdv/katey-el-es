@@ -14,26 +14,14 @@ fn main() -> Result<()> {
         .author("Klaas de Vries")
         .about("simple telnet-like tcp client")
         .arg(
-            clap::Arg::with_name("host")
-                .help("host to connect to")
+            clap::Arg::with_name("address")
+                .help("address to connect to, i.e. localhost:1729")
                 .index(1)
-                .required(true),
-        )
-        .arg(
-            clap::Arg::with_name("port")
-                .help("port to connect to")
-                .short("p")
-                .long("port")
-                .index(2)
                 .required(true),
         )
         .get_matches();
 
-    let address = format!(
-        "{}:{}",
-        args.value_of("host").unwrap(),
-        args.value_of("port").unwrap()
-    );
+    let address = args.value_of("address").unwrap();
 
     let mut runtime = tokio::runtime::Builder::new()
         .enable_all()
@@ -43,7 +31,7 @@ fn main() -> Result<()> {
     runtime.block_on(async { handle(&address).await })?;
 
     // kludge: tokio's stdin is implemented using a background thread, and needs explicit shutdown
-    runtime.shutdown_timeout(std::time::Duration::from_secs_f64(0.2));
+    runtime.shutdown_timeout(std::time::Duration::from_secs_f64(0.1));
 
     Ok(())
 }
