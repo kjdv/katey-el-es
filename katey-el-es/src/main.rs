@@ -168,5 +168,5 @@ fn make_config(args: &clap::ArgMatches) -> Result<rustls::ServerConfig> {
         );
     }
 
-    certutils::make_server_config(key, cert, maybe_client_auth)
+    certutils::make_server_config(cert, key, maybe_client_auth)
 }
