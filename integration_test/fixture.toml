@@ -1,0 +1,26 @@
+[[program]]
+name = "certgen"
+argv = ["certgen", "tree", "root", "server", "client"]
+ready = { completed={} }
+
+[[program]]
+name = "echo"
+argv = ["tcp_echo", "--port", "4000"]
+ready = { port=4000 }
+
+[[program]]
+name = "fibonacci"
+argv = ["tcp_fibonacci", "--port", "4001"]
+ready = { port=4001 }
+
+[[program]]
+name = "katey-echo"
+argv = ["katey-el-es", "--cert", "server-cert.pem", "--key", "server-key.pem", "5000", "localhost:4000"]
+ready = { port=5000 }
+depends = ["certgen", "echo"]
+
+[[program]]
+name = "katey-fibonacci"
+argv = ["katey-el-es", "--cert", "server-cert.pem", "--key", "server-key.pem", "5001", "localhost:4001"]
+ready = { port=5001 }
+depends = ["certgen", "fibonacci"]
