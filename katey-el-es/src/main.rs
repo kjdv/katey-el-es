@@ -11,7 +11,7 @@ use tokio_rustls::rustls;
 use tokio_rustls::server::TlsStream;
 use tokio_rustls::TlsAcceptor;
 
-use futures::future::try_select;
+use futures::future::{try_select, Either};
 use std::sync::Arc;
 use tokio::io::{copy, split, AsyncRead, AsyncWrite};
 use tokio::net::{TcpListener, TcpStream};
@@ -137,12 +137,19 @@ where
     let to = copy(&mut from_rx, &mut to_tx);
     let from = copy(&mut to_rx, &mut from_tx);
 
+    // Q: should this be a select or join?
     match try_select(to, from).await {
-        Ok(_) => {
-            log::debug!("clean exit");
+        Ok(Either::Left(_)) => {
+            log::info!("listen end closed the connection");
+        },
+        Ok(Either::Right(_)) => {
+            log::info!("forward end closed the connection");
         }
-        Err(_) => {
-            log::error!("closing due to error");
+        Err(Either::Left((e, _))) => {
+            log::warn!("listen end closed due to error {}", e);
+        },
+        Err(Either::Right((e, _))) => {
+            log::warn!("forward end closed due to error {}", e);
         }
     };
 }
