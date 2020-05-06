@@ -81,6 +81,8 @@ impl Fixture {
             .arg(certfile(tempdir.path(), "this-server"))
             .arg("--key")
             .arg(keyfile(tempdir.path(), "this-server"))
+            .arg("--authenticate")
+            .arg(certfile(tempdir.path(), "this-root"))
             .stdout(Stdio::null())
             .spawn()
             .expect("spawn");
@@ -111,11 +113,11 @@ impl Fixture {
     }
 
     pub fn tls_echo_client(&self, root: &str) -> Client {
-        self.tls_client(self.tls_echo_port, root)
+        self.tls_client(self.tls_echo_port, root, None)
     }
 
-    pub fn tls_fib_client(&self, root: &str) -> Client {
-        self.tls_client(self.tls_fib_port, root)
+    pub fn tls_fib_client(&self, root: &str, name: &str) -> Client {
+        self.tls_client(self.tls_fib_port, root, Some(name))
     }
 
     fn tcp_client(port: u16) -> Client {
@@ -142,7 +144,13 @@ impl Fixture {
         }
     }
 
-    fn tls_client(&self, port: u16, root: &str) -> Client {
+    fn tls_client(&self, port: u16, root: &str, name: Option<&str>) -> Client {
+        let args: Vec<String> = if let Some(name) = name {
+            vec!["--key".to_string(), keyfile(self.tempdir.path(), name), "--cert".to_string(), certfile(self.tempdir.path(), name)]
+        } else {
+            vec![]
+        };
+
         let mut process = escargot::CargoBuild::new()
             .manifest_path(manifest())
             .bin("katey-client")
@@ -152,6 +160,7 @@ impl Fixture {
             .arg(format!("localhost:{}", port))
             .arg("--root")
             .arg(certfile(self.tempdir.path(), root))
+            .args(args)
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::null())
