@@ -1,5 +1,7 @@
+extern crate escargot;
+
 use std::io::Read;
-use std::process::{Child, Command, Stdio};
+use std::process::{Child, Stdio};
 
 struct Fib {
     proc: Child,
@@ -7,15 +9,13 @@ struct Fib {
 
 impl Fib {
     fn new(port: u16, n: u32) -> Fib {
-        let cargo = env!("CARGO");
         let port = format!("{}", port);
         let n = format!("{}", n);
-        let proc = Command::new(cargo)
+        let proc = escargot::CargoBuild::new()
+            .run()
+            .expect("cargo run")
+            .command()
             .args(&[
-                "run",
-                "--bin",
-                "tcp_fibonacci",
-                "--",
                 "--port",
                 port.as_str(),
                 "-n",
