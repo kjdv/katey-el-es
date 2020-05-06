@@ -7,5 +7,6 @@ members = [
     "tcp_client",
     "tcp_fibonacci",
     "katey-el-es",
-    "katey-client"
+    "katey-client",
+    "integration_test"
 ]

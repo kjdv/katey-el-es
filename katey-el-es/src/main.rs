@@ -141,13 +141,13 @@ where
     match try_select(to, from).await {
         Ok(Either::Left(_)) => {
             log::info!("listen end closed the connection");
-        },
+        }
         Ok(Either::Right(_)) => {
             log::info!("forward end closed the connection");
         }
         Err(Either::Left((e, _))) => {
             log::warn!("listen end closed due to error {}", e);
-        },
+        }
         Err(Either::Right((e, _))) => {
             log::warn!("forward end closed due to error {}", e);
         }

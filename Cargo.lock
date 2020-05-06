@@ -314,6 +314,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "integration_test"
+version = "0.1.0"
+dependencies = [
+ "escargot",
+]
+
+[[package]]
 name = "iovec"
 version = "0.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
