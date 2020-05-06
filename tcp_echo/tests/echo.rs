@@ -1,5 +1,7 @@
+extern crate escargot;
+
 use std::io::{Read, Write};
-use std::process::{Child, Command, Stdio};
+use std::process::{Child, Stdio};
 
 struct Echo {
     proc: Child,
@@ -7,10 +9,12 @@ struct Echo {
 
 impl Echo {
     fn new(port: u16) -> Echo {
-        let cargo = env!("CARGO");
         let port = format!("{}", port);
-        let proc = Command::new(cargo)
-            .args(&["run", "--bin", "tcp_echo", "--", "--port", port.as_str()])
+        let proc = escargot::CargoBuild::new()
+            .run()
+            .expect("cargo run")
+            .command()
+            .args(&["--port", port.as_str()])
             .stdout(Stdio::null())
             .stderr(Stdio::null())
             .spawn()

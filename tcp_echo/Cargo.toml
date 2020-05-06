@@ -11,3 +11,4 @@ clap = "^2.33.0"
 tokio = { version = "^0.2.20", features = ["net", "io-util", "rt-core", "macros"] }
 log = "^0.4.8"
 simple_logger = "^1.5.0"
+escargot = "^0.5.0"
