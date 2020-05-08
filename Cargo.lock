@@ -873,8 +873,7 @@ name = "tcp-client"
 version = "0.1.0"
 dependencies = [
  "clap",
- "futures",
- "string-error",
+ "io-copy",
  "tokio",
 ]
 

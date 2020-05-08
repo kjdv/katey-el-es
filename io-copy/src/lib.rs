@@ -1,10 +1,10 @@
+extern crate futures;
 extern crate log;
 extern crate tokio;
-extern crate futures;
 
+use futures::future::{try_select, Either, TryFuture};
 use std::marker::Unpin;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
-use futures::future::{try_select, Either, TryFuture};
 
 const BUFSIZE: usize = 512;
 
@@ -37,10 +37,11 @@ where
 }
 
 pub async fn select<T, U, E, F, O>(to: T, from: U) -> Result<O>
-    where T: TryFuture<Ok=std::result::Result<O, F>, Error=E> + Unpin,
-          U: TryFuture<Ok=std::result::Result<O, F>, Error=E> + Unpin,
-          E: std::fmt::Debug + std::convert::Into<Box<dyn std::error::Error>>,
-          F: std::fmt::Debug + std::convert::Into<Box<dyn std::error::Error>>
+where
+    T: TryFuture<Ok = std::result::Result<O, F>, Error = E> + Unpin,
+    U: TryFuture<Ok = std::result::Result<O, F>, Error = E> + Unpin,
+    E: std::fmt::Debug + std::convert::Into<Box<dyn std::error::Error>>,
+    F: std::fmt::Debug + std::convert::Into<Box<dyn std::error::Error>>,
 {
     match try_select(to, from).await {
         Ok(Either::Left((Ok(to), _))) => {
@@ -122,7 +123,7 @@ mod tests {
             result
         });
         let from = tokio::spawn(async {
-            copy(NeverReady{}, tokio::io::sink()).await.unwrap();
+            copy(NeverReady {}, tokio::io::sink()).await.unwrap();
             let result: std::io::Result<Vec<u8>> = Ok(vec![]);
             result
         });
@@ -141,7 +142,7 @@ mod tests {
             result
         });
         let to = tokio::spawn(async {
-            copy(NeverReady{}, tokio::io::sink()).await.unwrap();
+            copy(NeverReady {}, tokio::io::sink()).await.unwrap();
             let result: std::io::Result<Vec<u8>> = Ok(vec![]);
             result
         });
@@ -153,11 +154,12 @@ mod tests {
     #[tokio::test]
     async fn select_left_error() {
         let to = tokio::spawn(async {
-            let result: std::io::Result<Vec<u8>> = Err(std::io::Error::from(std::io::ErrorKind::Other));
+            let result: std::io::Result<Vec<u8>> =
+                Err(std::io::Error::from(std::io::ErrorKind::Other));
             result
         });
         let from = tokio::spawn(async {
-            copy(NeverReady{}, tokio::io::sink()).await.unwrap();
+            copy(NeverReady {}, tokio::io::sink()).await.unwrap();
             let result: std::io::Result<Vec<u8>> = Ok(vec![]);
             result
         });
@@ -168,11 +170,12 @@ mod tests {
     #[tokio::test]
     async fn select_right_error() {
         let from = tokio::spawn(async {
-            let result: std::io::Result<Vec<u8>> = Err(std::io::Error::from(std::io::ErrorKind::Other));
+            let result: std::io::Result<Vec<u8>> =
+                Err(std::io::Error::from(std::io::ErrorKind::Other));
             result
         });
         let to = tokio::spawn(async {
-            copy(NeverReady{}, tokio::io::sink()).await.unwrap();
+            copy(NeverReady {}, tokio::io::sink()).await.unwrap();
             let result: std::io::Result<Vec<u8>> = Ok(vec![]);
             result
         });

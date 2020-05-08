@@ -1,10 +1,9 @@
 extern crate clap;
-extern crate futures;
-extern crate string_error;
+extern crate io_copy;
 extern crate tokio;
 
-use futures::future::try_select;
-use tokio::io::{copy, stdin, stdout};
+use io_copy::{copy, select};
+use tokio::io::{split, stdin, stdout};
 use tokio::net::TcpStream;
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
@@ -37,16 +36,13 @@ fn main() -> Result<()> {
 }
 
 async fn handle(address: &str) -> Result<()> {
-    let mut stream = TcpStream::connect(address).await?;
-    let (mut rx, mut tx) = stream.split();
-    let mut input = stdin();
-    let mut output = stdout();
+    let stream = TcpStream::connect(address).await?;
+    let (rx, tx) = split(stream);
+    let input = stdin();
+    let output = stdout();
 
-    let to = copy(&mut input, &mut tx);
-    let from = copy(&mut rx, &mut output);
+    let to = tokio::spawn(copy(input, tx));
+    let from = tokio::spawn(copy(rx, output));
 
-    match try_select(to, from).await {
-        Ok(_) => Ok(()),
-        Err(e) => Err(string_error::into_err(format!("{:?}", e))),
-    }
+    select(to, from).await
 }

@@ -7,7 +7,6 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+io-copy = { path = "../io-copy" }
 clap = "^2.33.0"
-tokio = { version = "^0.2.20", features = ["net", "rt-core", "io-std", "io-util", "macros"] }
-futures = "^0.3.4"
-string-error = "^0.1.0"
+tokio = { version = "^0.2.20", features = ["net", "rt-core", "io-std", "macros"] }
