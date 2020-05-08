@@ -3,7 +3,7 @@ extern crate io_copy;
 extern crate simple_logger;
 extern crate tokio;
 
-use io_copy::copy;
+use io_copy::proxy;
 use tokio::io::{split, stdin, stdout};
 use tokio::net::TcpStream;
 
@@ -48,12 +48,9 @@ fn main() -> Result<()> {
 
 async fn handle(address: &str) -> Result<()> {
     let stream = TcpStream::connect(address).await?;
-    let (rx, tx) = split(stream);
-    let input = stdin();
-    let output = stdout();
+    let (mut rx, mut tx) = split(stream);
+    let mut input = stdin();
+    let mut output = stdout();
 
-    tokio::select! {
-        x = copy(input, tx) => x.map_err(|e| e.into()),
-        x = copy(rx, output) => x.map_err(|e| e.into()),
-    }
+    proxy(&mut input, &mut output, &mut rx, &mut tx).await
 }

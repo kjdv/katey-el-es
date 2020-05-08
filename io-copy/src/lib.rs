@@ -1,8 +1,6 @@
-extern crate futures;
 extern crate log;
 extern crate tokio;
 
-use futures::future::{try_select, Either, TryFuture};
 use std::marker::Unpin;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
@@ -10,7 +8,7 @@ const BUFSIZE: usize = 512;
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
-pub async fn copy<T, U>(mut from: T, mut to: U) -> std::io::Result<()>
+pub async fn copy<T, U>(from: &mut T, to: &mut U) -> std::io::Result<()>
 where
     T: AsyncReadExt + Unpin,
     U: AsyncWriteExt + Unpin,
@@ -38,47 +36,38 @@ where
     }
 }
 
-pub async fn proxy<T, U, V, W>(rx1: T, tx1: U, rx2: V, tx2: W) -> Result<()>
-    where
-        T: AsyncReadExt + Unpin,
-        U: AsyncWriteExt + Unpin,
-        V: AsyncReadExt + Unpin,
-        W: AsyncWriteExt + Unpin,
-{
-        Ok(())
-}
-
-pub async fn select<T, U, E, F, O>(from: T, to: U) -> Result<O>
+pub async fn proxy<T, U, V, W>(rx1: &mut T, tx1: &mut U, rx2: &mut V, tx2: &mut W) -> Result<()>
 where
-    T: TryFuture<Ok = std::result::Result<O, F>, Error = E> + Unpin,
-    U: TryFuture<Ok = std::result::Result<O, F>, Error = E> + Unpin,
-    E: std::fmt::Debug + std::convert::Into<Box<dyn std::error::Error>>,
-    F: std::fmt::Debug + std::convert::Into<Box<dyn std::error::Error>>,
+    T: AsyncReadExt + Unpin,
+    U: AsyncWriteExt + Unpin,
+    V: AsyncReadExt + Unpin,
+    W: AsyncWriteExt + Unpin,
 {
-    match try_select(from, to).await {
-        Ok(Either::Left((Ok(from), _))) => {
-            log::info!("from->to closed ok");
-            Ok(from)
-        }
-        Ok(Either::Left((Err(from), _))) => {
-            log::warn!("from->to closed with error: {:?}", from);
-            Err(from.into())
-        }
-        Ok(Either::Right((Ok(to), _))) => {
-            log::info!("to->from closed ok");
-            Ok(to)
-        }
-        Ok(Either::Right((Err(to), _))) => {
-            log::warn!("to->from closed with error: {:?}", to);
-            Err(to.into())
-        }
-        Err(Either::Left((e, _))) => {
-            log::warn!("from->to error: {:?}", e);
-            Err(e.into())
-        }
-        Err(Either::Right((e, _))) => {
-            log::warn!("to->from error: {:?}", e);
-            Err(e.into())
+    // Q: select or join?
+    tokio::select! {
+        x = copy(rx1, tx2) => {
+            match x {
+                Ok(_) => {
+                    log::info!("rx1->tx2 completed");
+                    Ok(())
+                },
+                Err(e) => {
+                    log::warn!("rx1->tx2 errored: {}", e);
+                    Err(e.into())
+                }
+            }
+        },
+        x = copy(rx2, tx1) => {
+            match x {
+                Ok(_) => {
+                    log::info!("rx2->tx1 completed");
+                    Ok(())
+                },
+                Err(e) => {
+                    log::warn!("rx2->tx1 errored: {}", e);
+                    Err(e.into())
+                }
+            }
         }
     }
 }
@@ -86,6 +75,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
+    use tokio::io::sink;
 
     #[tokio::test]
     async fn basic() {
@@ -125,73 +115,64 @@ mod tests {
         }
     }
 
-    #[tokio::test]
-    async fn select_left() {
-        let to = tokio::spawn(async {
-            let mut reader: &[u8] = b"hello";
-            let mut writer: Vec<u8> = vec![];
-            copy(&mut reader, &mut writer).await.unwrap();
-            let result: std::io::Result<Vec<u8>> = Ok(writer);
-            result
-        });
-        let from = tokio::spawn(async {
-            copy(NeverReady {}, tokio::io::sink()).await.unwrap();
-            let result: std::io::Result<Vec<u8>> = Ok(vec![]);
-            result
-        });
+    struct AlwaysBad {}
 
-        let result: Vec<u8> = select(to, from).await.expect("select");
-        assert_eq!(b"hello", result.as_slice());
+    impl tokio::io::AsyncRead for AlwaysBad {
+        fn poll_read(
+            self: std::pin::Pin<&mut Self>,
+            _: &mut std::task::Context<'_>,
+            _buf: &mut [u8],
+        ) -> std::task::Poll<std::io::Result<usize>> {
+            let err = std::io::Error::from(std::io::ErrorKind::Other);
+            std::task::Poll::Ready(Err(err))
+        }
     }
 
     #[tokio::test]
-    async fn select_right() {
-        let from = tokio::spawn(async {
-            let mut reader: &[u8] = b"hello";
-            let mut writer: Vec<u8> = vec![];
-            copy(&mut reader, &mut writer).await.unwrap();
-            let result: std::io::Result<Vec<u8>> = Ok(writer);
-            result
-        });
-        let to = tokio::spawn(async {
-            copy(NeverReady {}, tokio::io::sink()).await.unwrap();
-            let result: std::io::Result<Vec<u8>> = Ok(vec![]);
-            result
-        });
+    async fn proxy_left() {
+        let mut reader: &[u8] = b"hello";
+        let mut writer: Vec<u8> = vec![];
 
-        let result: Vec<u8> = select(to, from).await.expect("select");
-        assert_eq!(b"hello", result.as_slice());
+        proxy(&mut reader, &mut sink(), &mut NeverReady {}, &mut writer)
+            .await
+            .unwrap();
+
+        assert_eq!(b"hello", writer.as_slice());
     }
 
     #[tokio::test]
-    async fn select_left_error() {
-        let to = tokio::spawn(async {
-            let result: std::io::Result<Vec<u8>> =
-                Err(std::io::Error::from(std::io::ErrorKind::Other));
-            result
-        });
-        let from = tokio::spawn(async {
-            copy(NeverReady {}, tokio::io::sink()).await.unwrap();
-            let result: std::io::Result<Vec<u8>> = Ok(vec![]);
-            result
-        });
+    async fn proxy_right() {
+        let mut reader: &[u8] = b"hello";
+        let mut writer: Vec<u8> = vec![];
 
-        select(to, from).await.expect_err("select");
+        proxy(&mut NeverReady {}, &mut writer, &mut reader, &mut sink())
+            .await
+            .unwrap();
+
+        assert_eq!(b"hello", writer.as_slice());
     }
 
     #[tokio::test]
-    async fn select_right_error() {
-        let from = tokio::spawn(async {
-            let result: std::io::Result<Vec<u8>> =
-                Err(std::io::Error::from(std::io::ErrorKind::Other));
-            result
-        });
-        let to = tokio::spawn(async {
-            copy(NeverReady {}, tokio::io::sink()).await.unwrap();
-            let result: std::io::Result<Vec<u8>> = Ok(vec![]);
-            result
-        });
+    async fn proxy_left_error() {
+        proxy(
+            &mut AlwaysBad {},
+            &mut sink(),
+            &mut NeverReady {},
+            &mut sink(),
+        )
+        .await
+        .expect_err("err");
+    }
 
-        select(to, from).await.expect_err("select");
+    #[tokio::test]
+    async fn proxy_right_error() {
+        proxy(
+            &mut NeverReady {},
+            &mut sink(),
+            &mut AlwaysBad {},
+            &mut sink(),
+        )
+        .await
+        .expect_err("err");
     }
 }

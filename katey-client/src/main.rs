@@ -5,7 +5,7 @@ extern crate simple_logger;
 extern crate tokio;
 extern crate tokio_rustls;
 
-use io_copy::copy;
+use io_copy::proxy;
 use std::sync::Arc;
 use tokio::io::{split, stdin, stdout};
 use tokio::net::TcpStream;
@@ -86,14 +86,11 @@ async fn handle(address: &str, config: rustls::ClientConfig) -> Result<()> {
     let stream = TcpStream::connect(address).await?;
     let stream = connector.connect(certutils::dns_name(dom), stream).await?;
 
-    let (rx, tx) = split(stream);
-    let input = stdin();
-    let output = stdout();
+    let (mut rx, mut tx) = split(stream);
+    let mut input = stdin();
+    let mut output = stdout();
 
-    tokio::select! {
-        x = copy(input, tx) => x.map_err(|e| e.into()),
-        x = copy(rx, output) => x.map_err(|e| e.into()),
-    }
+    proxy(&mut input, &mut output, &mut rx, &mut tx).await
 }
 
 fn domain(address: &str) -> &str {

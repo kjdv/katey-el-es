@@ -11,7 +11,7 @@ use tokio_rustls::rustls;
 use tokio_rustls::server::TlsStream;
 use tokio_rustls::TlsAcceptor;
 
-use io_copy::copy;
+use io_copy::proxy;
 use std::marker::Unpin;
 use std::sync::Arc;
 use tokio::io::{split, AsyncRead, AsyncWrite};
@@ -128,18 +128,14 @@ async fn serve(
     }
 }
 
-async fn handle<IO: 'static>(from_stream: TlsStream<IO>, to_stream: TcpStream)
+async fn handle<IO>(from_stream: TlsStream<IO>, to_stream: TcpStream)
 where
     IO: AsyncRead + AsyncWrite + Unpin + Send,
 {
-    let (from_rx, from_tx) = split(from_stream);
-    let (to_rx, to_tx) = split(to_stream);
+    let (mut from_rx, mut from_tx) = split(from_stream);
+    let (mut to_rx, mut to_tx) = split(to_stream);
 
-    // Q: should this be a select or join?
-    tokio::select! {
-        _ = copy(from_rx, to_tx) => (),
-        _ = copy(to_rx, from_tx) => (),
-    }
+    let _ = proxy(&mut from_rx, &mut from_tx, &mut to_rx, &mut to_tx).await;
 }
 
 fn make_config(args: &clap::ArgMatches) -> Result<rustls::ServerConfig> {
