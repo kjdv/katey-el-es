@@ -234,7 +234,8 @@ impl Client {
                 assert_eq!(0, n);
             });
 
-        self.process.wait().unwrap();
+        let status = self.process.wait().expect("child to exit");
+        assert!(!status.success());
     }
 
     fn assert_can_echo_line(&mut self, line: &[u8]) {
