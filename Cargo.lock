@@ -325,6 +325,7 @@ dependencies = [
 name = "io-copy"
 version = "0.1.0"
 dependencies = [
+ "futures",
  "log",
  "tokio",
 ]
@@ -359,9 +360,7 @@ version = "0.1.0"
 dependencies = [
  "certutils",
  "clap",
- "futures",
  "io-copy",
- "string-error",
  "tokio",
  "tokio-rustls",
 ]

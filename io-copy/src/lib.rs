@@ -1,14 +1,15 @@
 extern crate log;
 extern crate tokio;
+extern crate futures;
 
 use std::marker::Unpin;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use futures::future::{try_select, Either, TryFuture};
 
-type Result = std::io::Result<()>;
 
 const BUFSIZE: usize = 512;
 
-pub async fn copy<T, U>(mut from: T, mut to: U) -> Result
+pub async fn copy<T, U>(mut from: T, mut to: U) -> std::io::Result<()>
 where
     T: AsyncReadExt + Unpin,
     U: AsyncWriteExt + Unpin,
@@ -30,6 +31,39 @@ where
         if let Err(e) = to.write_all(&buf[0..n]).await {
             log::debug!("write error: {}", e);
             return Err(e);
+        }
+    }
+}
+
+pub async fn select<T, U, E>(to: T, from: U) -> std::result::Result<(), Box<dyn std::error::Error>>
+    where T: TryFuture<Ok=std::io::Result<()>, Error=E> + Unpin,
+          U: TryFuture<Ok=std::io::Result<()>, Error=E> + Unpin,
+          E: std::fmt::Debug + std::convert::Into<Box<dyn std::error::Error>>
+{
+    match try_select(to, from).await {
+        Ok(Either::Left((Ok(_), _))) => {
+            log::debug!("to->from closed ok");
+            Ok(())
+        }
+        Ok(Either::Left((Err(to), _))) => {
+            log::debug!("to->from closed with error: {:?}", to);
+            Err(to.into())
+        }
+        Ok(Either::Right((Ok(_), _))) => {
+            log::debug!("from->to closed ok");
+            Ok(())
+        }
+        Ok(Either::Right((Err(from), _))) => {
+            log::debug!("from->to closed with error: {:?}", from);
+            Err(from.into())
+        }
+        Err(Either::Left((e, _))) => {
+            log::debug!("to->from error: {:?}", e);
+            Err(e.into())
+        }
+        Err(Either::Right((e, _))) => {
+            log::debug!("from->to error: {:?}", e);
+            Err(e.into())
         }
     }
 }

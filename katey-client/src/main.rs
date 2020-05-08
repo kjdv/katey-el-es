@@ -1,13 +1,10 @@
 extern crate certutils;
 extern crate clap;
-extern crate futures;
 extern crate io_copy;
-extern crate string_error;
 extern crate tokio;
 extern crate tokio_rustls;
 
-use futures::future::{try_select, Either};
-use io_copy::copy;
+use io_copy::{copy, select};
 use std::sync::Arc;
 use tokio::io::{split, stdin, stdout};
 use tokio::net::TcpStream;
@@ -86,32 +83,7 @@ async fn handle(address: &str, config: rustls::ClientConfig) -> Result<()> {
     let to = tokio::spawn(copy(input, tx));
     let from = tokio::spawn(copy(rx, output));
 
-    match try_select(to, from).await {
-        Ok(Either::Left((Ok(_), _))) => {
-            eprintln!("local->remote closed");
-            Ok(())
-        }
-        Ok(Either::Left((Err(to), _))) => {
-            eprintln!("local->remote erred: {:?}", to);
-            Err(to.into())
-        }
-        Ok(Either::Right((Ok(_), _))) => {
-            eprintln!("remote->local closed");
-            Ok(())
-        }
-        Ok(Either::Right((Err(from), _))) => {
-            eprintln!("remote->local closed: {:?}", from);
-            Err(from.into())
-        }
-        Err(Either::Left((e, _))) => {
-            eprintln!("local->remote error: {:?}", e);
-            Err(e.into())
-        }
-        Err(Either::Right((e, _))) => {
-            eprintln!("remote->local error: {:?}", e);
-            Err(e.into())
-        }
-    }
+    select(to, from).await
 }
 
 fn domain(address: &str) -> &str {

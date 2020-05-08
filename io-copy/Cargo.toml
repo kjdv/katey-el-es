@@ -9,6 +9,7 @@ edition = "2018"
 [dependencies]
 tokio = { version = "^0.2.20", features = ["io-util"] }
 log = "^0.4.8"
+futures = "^0.3.4"
 
 [dev-dependencies]
 tokio = { version = "^0.2.20", features = ["rt-core", "macros"] }
