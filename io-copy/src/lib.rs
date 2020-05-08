@@ -38,6 +38,16 @@ where
     }
 }
 
+pub async fn proxy<T, U, V, W>(rx1: T, tx1: U, rx2: V, tx2: W) -> Result<()>
+    where
+        T: AsyncReadExt + Unpin,
+        U: AsyncWriteExt + Unpin,
+        V: AsyncReadExt + Unpin,
+        W: AsyncWriteExt + Unpin,
+{
+        Ok(())
+}
+
 pub async fn select<T, U, E, F, O>(from: T, to: U) -> Result<O>
 where
     T: TryFuture<Ok = std::result::Result<O, F>, Error = E> + Unpin,
