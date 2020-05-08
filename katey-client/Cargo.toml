@@ -9,6 +9,7 @@ edition = "2018"
 [dependencies]
 certutils = { path = "../certutils" }
 io-copy = { path = "../io-copy" }
+simple_logger = "^1.5.0"
 clap = "^2.33.0"
 tokio = { version = "^0.2.20", features = ["net", "io-util", "io-std", "rt-core", "macros"] }
 tokio-rustls = "^0.13.0"

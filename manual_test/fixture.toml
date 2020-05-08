@@ -15,7 +15,7 @@ ready = { port=4000 }
 
 [[program]]
 name = "fibonacci"
-argv = ["tcp-fibonacci", "--port", "4001", "--interval", "0.1"]
+argv = ["tcp-fibonacci", "-d", "--port", "4001", "--interval", "0.1"]
 ready = { port=4001 }
 
 [[program]]
@@ -26,12 +26,12 @@ depends = ["certgen", "echo"]
 
 [[program]]
 name = "katey-fibonacci"
-argv = ["katey-el-es", "--cert", "server-cert.pem", "--key", "server-key.pem", "5001", "localhost:4001", "--authenticate", "root-cert.pem"]
+argv = ["katey-el-es", "-d", "--cert", "server-cert.pem", "--key", "server-key.pem", "5001", "localhost:4001", "--authenticate", "root-cert.pem"]
 ready = { port=5001 }
 depends = ["certgen", "fibonacci"]
 
-[[program]]
-name = "smoke-test"
-argv = ["./run.sh"]
-ready = { completed={} }
-depends = ["other-certgen", "certgen", "echo", "fibonacci", "katey-echo", "katey-fibonacci"]
+#[[program]]
+#name = "smoke-test"
+#argv = ["./run.sh"]
+#ready = { completed={} }
+#depends = ["other-certgen", "certgen", "echo", "fibonacci", "katey-echo", "katey-fibonacci"]

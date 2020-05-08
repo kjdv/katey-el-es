@@ -29,6 +29,8 @@ where
             Ok(n) => n,
         };
 
+        log::debug!("transferring {} bytes", n);
+
         if let Err(e) = to.write_all(&buf[0..n]).await {
             log::debug!("write error: {}", e);
             return Err(e);
@@ -36,36 +38,36 @@ where
     }
 }
 
-pub async fn select<T, U, E, F, O>(to: T, from: U) -> Result<O>
+pub async fn select<T, U, E, F, O>(from: T, to: U) -> Result<O>
 where
     T: TryFuture<Ok = std::result::Result<O, F>, Error = E> + Unpin,
     U: TryFuture<Ok = std::result::Result<O, F>, Error = E> + Unpin,
     E: std::fmt::Debug + std::convert::Into<Box<dyn std::error::Error>>,
     F: std::fmt::Debug + std::convert::Into<Box<dyn std::error::Error>>,
 {
-    match try_select(to, from).await {
-        Ok(Either::Left((Ok(to), _))) => {
-            log::info!("to->from closed ok");
-            Ok(to)
-        }
-        Ok(Either::Left((Err(to), _))) => {
-            log::warn!("to->from closed with error: {:?}", to);
-            Err(to.into())
-        }
-        Ok(Either::Right((Ok(to), _))) => {
+    match try_select(from, to).await {
+        Ok(Either::Left((Ok(from), _))) => {
             log::info!("from->to closed ok");
-            Ok(to)
+            Ok(from)
         }
-        Ok(Either::Right((Err(from), _))) => {
+        Ok(Either::Left((Err(from), _))) => {
             log::warn!("from->to closed with error: {:?}", from);
             Err(from.into())
         }
+        Ok(Either::Right((Ok(to), _))) => {
+            log::info!("to->from closed ok");
+            Ok(to)
+        }
+        Ok(Either::Right((Err(to), _))) => {
+            log::warn!("to->from closed with error: {:?}", to);
+            Err(to.into())
+        }
         Err(Either::Left((e, _))) => {
-            log::warn!("to->from error: {:?}", e);
+            log::warn!("from->to error: {:?}", e);
             Err(e.into())
         }
         Err(Either::Right((e, _))) => {
-            log::warn!("from->to error: {:?}", e);
+            log::warn!("to->from error: {:?}", e);
             Err(e.into())
         }
     }

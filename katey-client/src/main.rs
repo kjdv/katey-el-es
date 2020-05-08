@@ -1,6 +1,7 @@
 extern crate certutils;
 extern crate clap;
 extern crate io_copy;
+extern crate simple_logger;
 extern crate tokio;
 extern crate tokio_rustls;
 
@@ -17,6 +18,11 @@ fn main() -> Result<()> {
     let args = clap::App::new("katey-client")
         .author("Klaas de Vries")
         .about("tls-enabled telnet-like client")
+        .arg(clap::Arg::with_name("debug")
+            .help("enable debug logging")
+            .short("d")
+            .long("debug"),
+        )
         .arg(
             clap::Arg::with_name("address")
                 .help("address to connect to, i.e. localhost:1729")
@@ -48,6 +54,10 @@ fn main() -> Result<()> {
                 .takes_value(true)
         )
         .get_matches();
+
+    if args.is_present("debug") {
+        simple_logger::init()?;
+    }
 
     let address = args.value_of("address").unwrap();
 

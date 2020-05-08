@@ -361,6 +361,7 @@ dependencies = [
  "certutils",
  "clap",
  "io-copy",
+ "simple_logger",
  "tokio",
  "tokio-rustls",
 ]
@@ -371,7 +372,7 @@ version = "0.1.0"
 dependencies = [
  "certutils",
  "clap",
- "futures",
+ "io-copy",
  "log",
  "simple_logger",
  "tokio",
@@ -874,6 +875,7 @@ version = "0.1.0"
 dependencies = [
  "clap",
  "io-copy",
+ "simple_logger",
  "tokio",
 ]
 

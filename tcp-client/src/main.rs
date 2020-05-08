@@ -1,5 +1,6 @@
 extern crate clap;
 extern crate io_copy;
+extern crate simple_logger;
 extern crate tokio;
 
 use io_copy::{copy, select};
@@ -13,12 +14,22 @@ fn main() -> Result<()> {
         .author("Klaas de Vries")
         .about("simple telnet-like tcp client")
         .arg(
+            clap::Arg::with_name("debug")
+                .help("enable debug logging")
+                .short("d")
+                .long("debug"),
+        )
+        .arg(
             clap::Arg::with_name("address")
                 .help("address to connect to, i.e. localhost:1729")
                 .index(1)
                 .required(true),
         )
         .get_matches();
+
+    if args.is_present("debug") {
+        simple_logger::init()?;
+    }
 
     let address = args.value_of("address").unwrap();
 
