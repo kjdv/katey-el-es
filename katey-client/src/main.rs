@@ -5,9 +5,10 @@ extern crate string_error;
 extern crate tokio;
 extern crate tokio_rustls;
 
-use futures::future::try_select;
+use futures::future::{try_select, Either};
+use std::marker::Unpin;
 use std::sync::Arc;
-use tokio::io::{copy, split, stdin, stdout};
+use tokio::io::{split, stdin, stdout, AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
 use tokio_rustls::rustls;
 use tokio_rustls::TlsConnector;
@@ -63,12 +64,12 @@ fn main() -> Result<()> {
         .basic_scheduler()
         .build()?;
 
-    runtime.block_on(async { handle(&address, config).await })?;
+    let ret = runtime.block_on(async { handle(&address, config).await });
 
     // kludge: tokio's stdin is implemented using a background thread, and needs explicit shutdown
     runtime.shutdown_timeout(std::time::Duration::from_secs_f64(0.1));
 
-    Ok(())
+    ret
 }
 
 async fn handle(address: &str, config: rustls::ClientConfig) -> Result<()> {
@@ -77,16 +78,66 @@ async fn handle(address: &str, config: rustls::ClientConfig) -> Result<()> {
     let stream = TcpStream::connect(address).await?;
     let stream = connector.connect(certutils::dns_name(dom), stream).await?;
 
-    let (mut rx, mut tx) = split(stream);
-    let mut input = stdin();
-    let mut output = stdout();
+    let (rx, tx) = split(stream);
+    let input = stdin();
+    let output = stdout();
 
-    let to = copy(&mut input, &mut tx);
-    let from = copy(&mut rx, &mut output);
+    let to = tokio::spawn(async { copy(input, tx).await });
+    let from = tokio::spawn(async { copy(rx, output).await });
 
     match try_select(to, from).await {
-        Ok(_) => Ok(()),
-        Err(e) => Err(string_error::into_err(format!("{:?}", e))),
+        Ok(Either::Left((Ok(_), _))) => {
+            eprintln!("local->remote closed");
+            Ok(())
+        }
+        Ok(Either::Left((Err(to), _))) => {
+            eprintln!("local->remote erred: {:?}", to);
+            Err(to.into())
+        }
+        Ok(Either::Right((Ok(_), _))) => {
+            eprintln!("remote->local closed");
+            Ok(())
+        }
+        Ok(Either::Right((Err(from), _))) => {
+            eprintln!("remote->local closed: {:?}", from);
+            Err(from.into())
+        }
+        Err(Either::Left((e, _))) => {
+            eprintln!("local->remote error: {:?}", e);
+            Err(e.into())
+        }
+        Err(Either::Right((e, _))) => {
+            eprintln!("remote->local error: {:?}", e);
+            Err(e.into())
+        }
+    }
+}
+
+async fn copy<T, U>(mut from: T, mut to: U) -> std::io::Result<()>
+where
+    T: AsyncReadExt + Unpin,
+    U: AsyncWriteExt + Unpin,
+{
+    const BUFSIZE: usize = 512;
+
+    let mut buf = [0; BUFSIZE];
+    loop {
+        let n = match from.read(&mut buf).await {
+            Err(e) => {
+                eprintln!("read error: {}", e);
+                return Err(e);
+            }
+            Ok(0) => {
+                eprintln!("0 read");
+                return Ok(());
+            }
+            Ok(n) => n,
+        };
+
+        if let Err(e) = to.write_all(&buf[0..n]).await {
+            eprintln!("write error: {}", e);
+            return Err(e);
+        }
     }
 }
 
