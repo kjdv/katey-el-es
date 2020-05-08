@@ -82,8 +82,8 @@ async fn handle(address: &str, config: rustls::ClientConfig) -> Result<()> {
     let input = stdin();
     let output = stdout();
 
-    let to = tokio::spawn(async { copy(input, tx).await });
-    let from = tokio::spawn(async { copy(rx, output).await });
+    let to = tokio::spawn(copy(input, tx));
+    let from = tokio::spawn(copy(rx, output));
 
     match try_select(to, from).await {
         Ok(Either::Left((Ok(_), _))) => {

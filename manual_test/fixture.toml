@@ -1,4 +1,9 @@
 [[program]]
+name = "other-certgen"
+argv = ["certgen", "tree", "other-root", "other-client"]
+ready = { completed={} }
+
+[[program]]
 name = "certgen"
 argv = ["certgen", "tree", "root", "server", "client"]
 ready = { completed={} }
