@@ -48,9 +48,9 @@ fn main() -> Result<()> {
 
 async fn handle(address: &str) -> Result<()> {
     let stream = TcpStream::connect(address).await?;
-    let (mut rx, mut tx) = split(stream);
-    let mut input = stdin();
-    let mut output = stdout();
+    let stream = split(stream);
+    let input = stdin();
+    let output = stdout();
 
-    proxy(&mut input, &mut output, &mut rx, &mut tx).await
+    proxy((input, output), stream).await
 }

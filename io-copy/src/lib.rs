@@ -8,7 +8,7 @@ const BUFSIZE: usize = 512;
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
-pub async fn copy<T, U>(from: &mut T, to: &mut U) -> std::io::Result<()>
+pub async fn copy<T, U>(mut from: T, mut to: U) -> std::io::Result<()>
 where
     T: AsyncReadExt + Unpin,
     U: AsyncWriteExt + Unpin,
@@ -36,13 +36,16 @@ where
     }
 }
 
-pub async fn proxy<T, U, V, W>(rx1: &mut T, tx1: &mut U, rx2: &mut V, tx2: &mut W) -> Result<()>
+pub async fn proxy<T, U, V, W>(stream1: (T, U), stream2: (V, W)) -> Result<()>
 where
     T: AsyncReadExt + Unpin,
     U: AsyncWriteExt + Unpin,
     V: AsyncReadExt + Unpin,
     W: AsyncWriteExt + Unpin,
 {
+    let (rx1, tx1) = stream1;
+    let (rx2, tx2) = stream2;
+
     // Q: select or join?
     tokio::select! {
         x = copy(rx1, tx2) => {
@@ -133,7 +136,7 @@ mod tests {
         let mut reader: &[u8] = b"hello";
         let mut writer: Vec<u8> = vec![];
 
-        proxy(&mut reader, &mut sink(), &mut NeverReady {}, &mut writer)
+        proxy((&mut reader, sink()), (NeverReady {}, &mut writer))
             .await
             .unwrap();
 
@@ -145,7 +148,7 @@ mod tests {
         let mut reader: &[u8] = b"hello";
         let mut writer: Vec<u8> = vec![];
 
-        proxy(&mut NeverReady {}, &mut writer, &mut reader, &mut sink())
+        proxy((NeverReady {}, &mut writer), (&mut reader, sink()))
             .await
             .unwrap();
 
@@ -154,25 +157,15 @@ mod tests {
 
     #[tokio::test]
     async fn proxy_left_error() {
-        proxy(
-            &mut AlwaysBad {},
-            &mut sink(),
-            &mut NeverReady {},
-            &mut sink(),
-        )
-        .await
-        .expect_err("err");
+        proxy((AlwaysBad {}, sink()), (NeverReady {}, sink()))
+            .await
+            .expect_err("err");
     }
 
     #[tokio::test]
     async fn proxy_right_error() {
-        proxy(
-            &mut NeverReady {},
-            &mut sink(),
-            &mut AlwaysBad {},
-            &mut sink(),
-        )
-        .await
-        .expect_err("err");
+        proxy((NeverReady {}, sink()), (AlwaysBad {}, sink()))
+            .await
+            .expect_err("err");
     }
 }

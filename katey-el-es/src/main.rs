@@ -132,10 +132,10 @@ async fn handle<IO>(from_stream: TlsStream<IO>, to_stream: TcpStream)
 where
     IO: AsyncRead + AsyncWrite + Unpin + Send,
 {
-    let (mut from_rx, mut from_tx) = split(from_stream);
-    let (mut to_rx, mut to_tx) = split(to_stream);
+    let from_stream = split(from_stream);
+    let to_stream = split(to_stream);
 
-    let _ = proxy(&mut from_rx, &mut from_tx, &mut to_rx, &mut to_tx).await;
+    let _ = proxy(from_stream, to_stream).await;
 }
 
 fn make_config(args: &clap::ArgMatches) -> Result<rustls::ServerConfig> {

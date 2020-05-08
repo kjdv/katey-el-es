@@ -86,11 +86,11 @@ async fn handle(address: &str, config: rustls::ClientConfig) -> Result<()> {
     let stream = TcpStream::connect(address).await?;
     let stream = connector.connect(certutils::dns_name(dom), stream).await?;
 
-    let (mut rx, mut tx) = split(stream);
-    let mut input = stdin();
-    let mut output = stdout();
+    let stream = split(stream);
+    let input = stdin();
+    let output = stdout();
 
-    proxy(&mut input, &mut output, &mut rx, &mut tx).await
+    proxy((input, output), stream).await
 }
 
 fn domain(address: &str) -> &str {
