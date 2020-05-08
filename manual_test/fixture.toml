@@ -30,8 +30,8 @@ argv = ["katey-el-es", "-d", "--cert", "server-cert.pem", "--key", "server-key.p
 ready = { port=5001 }
 depends = ["certgen", "fibonacci"]
 
-#[[program]]
-#name = "smoke-test"
-#argv = ["./run.sh"]
-#ready = { completed={} }
-#depends = ["other-certgen", "certgen", "echo", "fibonacci", "katey-echo", "katey-fibonacci"]
+[[program]]
+name = "smoke-test"
+argv = ["./run.sh"]
+ready = { completed={} }
+depends = ["other-certgen", "certgen", "echo", "fibonacci", "katey-echo", "katey-fibonacci"]

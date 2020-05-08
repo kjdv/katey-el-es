@@ -11,7 +11,7 @@ use tokio_rustls::rustls;
 use tokio_rustls::server::TlsStream;
 use tokio_rustls::TlsAcceptor;
 
-use io_copy::{copy, select};
+use io_copy::copy;
 use std::marker::Unpin;
 use std::sync::Arc;
 use tokio::io::{split, AsyncRead, AsyncWrite};
@@ -135,11 +135,11 @@ where
     let (from_rx, from_tx) = split(from_stream);
     let (to_rx, to_tx) = split(to_stream);
 
-    let to = tokio::spawn(copy(from_rx, to_tx));
-    let from = tokio::spawn(copy(to_rx, from_tx));
-
     // Q: should this be a select or join?
-    let _ = select(to, from).await;
+    tokio::select! {
+        _ = copy(from_rx, to_tx) => (),
+        _ = copy(to_rx, from_tx) => (),
+    }
 }
 
 fn make_config(args: &clap::ArgMatches) -> Result<rustls::ServerConfig> {
