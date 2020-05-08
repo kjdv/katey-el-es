@@ -45,27 +45,27 @@ where
 {
     match try_select(to, from).await {
         Ok(Either::Left((Ok(to), _))) => {
-            log::debug!("to->from closed ok");
+            log::info!("to->from closed ok");
             Ok(to)
         }
         Ok(Either::Left((Err(to), _))) => {
-            log::debug!("to->from closed with error: {:?}", to);
+            log::warn!("to->from closed with error: {:?}", to);
             Err(to.into())
         }
         Ok(Either::Right((Ok(to), _))) => {
-            log::debug!("from->to closed ok");
+            log::info!("from->to closed ok");
             Ok(to)
         }
         Ok(Either::Right((Err(from), _))) => {
-            log::debug!("from->to closed with error: {:?}", from);
+            log::warn!("from->to closed with error: {:?}", from);
             Err(from.into())
         }
         Err(Either::Left((e, _))) => {
-            log::debug!("to->from error: {:?}", e);
+            log::warn!("to->from error: {:?}", e);
             Err(e.into())
         }
         Err(Either::Right((e, _))) => {
-            log::debug!("from->to error: {:?}", e);
+            log::warn!("from->to error: {:?}", e);
             Err(e.into())
         }
     }
