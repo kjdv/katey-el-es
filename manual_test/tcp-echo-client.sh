@@ -1,3 +1,3 @@
 #!/bin/bash
 
-exec tcp_client localhost:4000 $@
+exec tcp-client localhost:4000 $@

@@ -1,5 +1,5 @@
 [package]
-name = "tcp_fibonacci"
+name = "tcp-fibonacci"
 version = "0.1.0"
 authors = ["Klaas de Vries <klaasjacobdevries@gmail.com>"]
 edition = "2018"

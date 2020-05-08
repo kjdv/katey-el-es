@@ -1,5 +1,5 @@
 [package]
-name = "tcp_client"
+name = "tcp-echo"
 version = "0.1.0"
 authors = ["Klaas de Vries <klaasjacobdevries@gmail.com>"]
 edition = "2018"
@@ -8,6 +8,9 @@ edition = "2018"
 
 [dependencies]
 clap = "^2.33.0"
-tokio = { version = "^0.2.20", features = ["net", "rt-core", "io-std", "io-util", "macros"] }
-futures = "^0.3.4"
-string-error = "^0.1.0"
+tokio = { version = "^0.2.20", features = ["net", "io-util", "rt-core", "macros"] }
+log = "^0.4.8"
+simple_logger = "^1.5.0"
+
+[dev-dependencies]
+escargot = "^0.5.0"

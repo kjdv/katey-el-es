@@ -3,19 +3,19 @@ all: build
 build:
 	cargo build
 
-install: install-certgen install-tcp_echo install-tcp_client install-tcp_fibonacci install-katey-el-es install-katey-client
+install: install-certgen install-tcp-echo install-tcp-client install-tcp-fibonacci install-katey-el-es install-katey-client
 
 install-certgen:
 	cargo install --path certgen
 
-install-tcp_echo:
-	cargo install --path tcp_echo
+install-tcp-echo:
+	cargo install --path tcp-echo
 
-install-tcp_client:
-	cargo install --path tcp_client
+install-tcp-client:
+	cargo install --path tcp-client
 
-install-tcp_fibonacci:
-	cargo install --path tcp_fibonacci
+install-tcp-fibonacci:
+	cargo install --path tcp-fibonacci
 
 install-katey-el-es:
 	cargo install --path katey-el-es
@@ -38,4 +38,4 @@ format:
 clean:
 	cargo clean
 
-.PHONY: all build test update check unit-test clean install-certgen install-tcp_echo install-tcp_fibonacci install-tcp_client install-katey-el-es install-katey-client
+.PHONY: all build test update check unit-test clean install-certgen install-tcp-echo install-tcp-fibonacci install-tcp-client install-katey-el-es install-katey-client

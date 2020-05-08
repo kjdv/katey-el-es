@@ -34,7 +34,7 @@ impl Fixture {
 
         let tcp_echo = escargot::CargoBuild::new()
             .manifest_path(manifest())
-            .bin("tcp_echo")
+            .bin("tcp-echo")
             .run()
             .expect("cargo run")
             .command()
@@ -44,7 +44,7 @@ impl Fixture {
             .expect("spawn");
         let tcp_fib = escargot::CargoBuild::new()
             .manifest_path(manifest())
-            .bin("tcp_fibonacci")
+            .bin("tcp-fibonacci")
             .run()
             .expect("cargo run")
             .command()
@@ -123,7 +123,7 @@ impl Fixture {
     fn tcp_client(port: u16) -> Client {
         let mut process = escargot::CargoBuild::new()
             .manifest_path(manifest())
-            .bin("tcp_client")
+            .bin("tcp-client")
             .run()
             .expect("cargo run")
             .command()

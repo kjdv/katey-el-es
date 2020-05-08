@@ -10,12 +10,12 @@ ready = { completed={} }
 
 [[program]]
 name = "echo"
-argv = ["tcp_echo", "--port", "4000"]
+argv = ["tcp-echo", "--port", "4000"]
 ready = { port=4000 }
 
 [[program]]
 name = "fibonacci"
-argv = ["tcp_fibonacci", "--port", "4001"]
+argv = ["tcp-fibonacci", "--port", "4001", "--interval", "0.1"]
 ready = { port=4001 }
 
 [[program]]

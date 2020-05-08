@@ -3,9 +3,9 @@
 members = [
     "certutils",
     "certgen",
-    "tcp_echo",
-    "tcp_client",
-    "tcp_fibonacci",
+    "tcp-echo",
+    "tcp-client",
+    "tcp-fibonacci",
     "katey-el-es",
     "katey-client",
     "integration_test"
