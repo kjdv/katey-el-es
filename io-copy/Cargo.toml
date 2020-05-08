@@ -1,0 +1,14 @@
+[package]
+name = "io-copy"
+version = "0.1.0"
+authors = ["Klaas de Vries <klaasjacobdevries@gmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+tokio = { version = "^0.2.20", features = ["io-util"] }
+log = "^0.4.8"
+
+[dev-dependencies]
+tokio = { version = "^0.2.20", features = ["rt-core", "macros"] }
