@@ -1,7 +1,7 @@
 extern crate escargot;
 extern crate tempfile;
 
-use std::io::{BufRead, Write};
+use std::io::{BufRead, Read, Write};
 use std::process::{Child, Stdio};
 
 pub struct Fixture {
@@ -100,7 +100,7 @@ impl Fixture {
             tls_echo,
             tls_echo_port,
             tls_fib,
-            tls_fib_port
+            tls_fib_port,
         }
     }
 
@@ -146,7 +146,12 @@ impl Fixture {
 
     fn tls_client(&self, port: u16, root: &str, name: Option<&str>) -> Client {
         let args: Vec<String> = if let Some(name) = name {
-            vec!["--key".to_string(), keyfile(self.tempdir.path(), name), "--cert".to_string(), certfile(self.tempdir.path(), name)]
+            vec![
+                "--key".to_string(),
+                keyfile(self.tempdir.path(), name),
+                "--cert".to_string(),
+                certfile(self.tempdir.path(), name),
+            ]
         } else {
             vec![]
         };
@@ -217,9 +222,20 @@ impl Client {
     }
 
     pub fn assert_rejected(&mut self) {
-        let mut buf = String::new();
-        self.reader.read_line(&mut buf).expect("read");
-        assert_eq!(0, buf.len());
+        // todo: get rid of the sleep
+        std::thread::sleep(std::time::Duration::from_secs_f64(0.1));
+
+        let _ = self
+            .writer
+            .write_all(b"ping\n")
+            .and_then(|_| self.writer.flush())
+            .and_then(|_| {
+                let mut buf = [0; 1];
+                self.reader.read(&mut buf)
+            })
+            .map(|n| {
+                assert_eq!(0, n);
+            });
 
         self.process.wait().unwrap();
     }

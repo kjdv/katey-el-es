@@ -2,7 +2,7 @@ mod fixture;
 
 use fixture::Fixture;
 
-const BASE_PORT: u16 = 4000;
+const BASE_PORT: u16 = 6000;
 const PORT_STEP: u16 = 6;
 
 fn base_port(num: u16) -> u16 {
@@ -48,7 +48,6 @@ fn tls_fib() {
     let mut client = fix.tls_fib_client("this-root", "this-client");
     client.assert_can_listen();
 }
-
 
 #[test]
 fn tls_reject_client() {
