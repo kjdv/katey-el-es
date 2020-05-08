@@ -9,4 +9,5 @@ set -e
 
 ((! (./katey-bad-server.sh > /dev/null 2>&1)) && echo katey-bad-server ok)
 ((! (./katey-bad-client.sh > /dev/null 2>&1)) && echo katey-bad-client ok)
+
 echo done

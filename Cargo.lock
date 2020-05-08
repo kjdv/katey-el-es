@@ -360,6 +360,7 @@ dependencies = [
  "certutils",
  "clap",
  "futures",
+ "io-copy",
  "string-error",
  "tokio",
  "tokio-rustls",

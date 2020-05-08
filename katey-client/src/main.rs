@@ -1,14 +1,15 @@
 extern crate certutils;
 extern crate clap;
 extern crate futures;
+extern crate io_copy;
 extern crate string_error;
 extern crate tokio;
 extern crate tokio_rustls;
 
 use futures::future::{try_select, Either};
-use std::marker::Unpin;
+use io_copy::copy;
 use std::sync::Arc;
-use tokio::io::{split, stdin, stdout, AsyncReadExt, AsyncWriteExt};
+use tokio::io::{split, stdin, stdout};
 use tokio::net::TcpStream;
 use tokio_rustls::rustls;
 use tokio_rustls::TlsConnector;
@@ -109,34 +110,6 @@ async fn handle(address: &str, config: rustls::ClientConfig) -> Result<()> {
         Err(Either::Right((e, _))) => {
             eprintln!("remote->local error: {:?}", e);
             Err(e.into())
-        }
-    }
-}
-
-async fn copy<T, U>(mut from: T, mut to: U) -> std::io::Result<()>
-where
-    T: AsyncReadExt + Unpin,
-    U: AsyncWriteExt + Unpin,
-{
-    const BUFSIZE: usize = 512;
-
-    let mut buf = [0; BUFSIZE];
-    loop {
-        let n = match from.read(&mut buf).await {
-            Err(e) => {
-                eprintln!("read error: {}", e);
-                return Err(e);
-            }
-            Ok(0) => {
-                eprintln!("0 read");
-                return Ok(());
-            }
-            Ok(n) => n,
-        };
-
-        if let Err(e) = to.write_all(&buf[0..n]).await {
-            eprintln!("write error: {}", e);
-            return Err(e);
         }
     }
 }
