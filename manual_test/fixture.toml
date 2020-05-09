@@ -10,23 +10,23 @@ ready = { completed={} }
 
 [[program]]
 name = "echo"
-argv = ["tcp-echo", "--port", "4000"]
+argv = ["tcp-echo", "--debug", "--port", "4000"]
 ready = { port=4000 }
 
 [[program]]
 name = "fibonacci"
-argv = ["tcp-fibonacci", "-d", "--port", "4001", "--interval", "0.1"]
+argv = ["tcp-fibonacci", "--debug", "--port", "4001", "--interval", "0.1"]
 ready = { port=4001 }
 
 [[program]]
 name = "katey-echo"
-argv = ["katey-el-es", "--cert", "server-cert.pem", "--key", "server-key.pem", "5000", "localhost:4000"]
+argv = ["katey-el-es", "--debug", "--cert", "server-cert.pem", "--key", "server-key.pem", "5000", "localhost:4000"]
 ready = { port=5000 }
 depends = ["certgen", "echo"]
 
 [[program]]
 name = "katey-fibonacci"
-argv = ["katey-el-es", "-d", "--cert", "server-cert.pem", "--key", "server-key.pem", "5001", "localhost:4001", "--authenticate", "root-cert.pem"]
+argv = ["katey-el-es", "--debug", "--cert", "server-cert.pem", "--key", "server-key.pem", "5001", "localhost:4001", "--authenticate", "root-cert.pem"]
 ready = { port=5001 }
 depends = ["certgen", "fibonacci"]
 
