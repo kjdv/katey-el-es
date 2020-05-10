@@ -17,11 +17,14 @@ fn main() -> Result<()> {
                 .long("debug"),
         )
         .arg(
-            clap::Arg::with_name("listen")
-                .help("interface to listen on, i.e. 127.0.0.1 or 0.0.0.0")
-                .short("l")
-                .long("listen")
-                .default_value("127.0.0.1"),
+            clap::Arg::with_name("public")
+                .help("open publicly, not just localhost")
+                .long("public"),
+        )
+        .arg(
+            clap::Arg::with_name("threads")
+                .help("enable multi-threaded server")
+                .long("threads"),
         )
         .arg(
             clap::Arg::with_name("port")
@@ -43,7 +46,9 @@ fn main() -> Result<()> {
     log::debug!("arguments are config file is {:?}", args);
 
     let port = args.value_of("port").unwrap().parse()?;
-    let config = tcp_server::Config::new(port);
+    let config = tcp_server::Config::new(port)
+        .with_public(args.is_present("public"))
+        .with_threading(args.is_present("threads"));
     let mut server = tcp_server::Server::new(config)?;
 
     server.run(handle)

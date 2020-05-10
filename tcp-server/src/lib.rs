@@ -12,6 +12,7 @@ pub use tokio::runtime::Handle;
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
+#[derive(Debug, Copy, Clone)]
 pub struct Config {
     port: u16,
     public: bool,
@@ -29,19 +30,19 @@ impl Config {
         }
     }
 
-    pub fn with_public(&mut self) -> &mut Self {
-        self.public = true;
-        self
+    pub fn with_public(&mut self, public: bool) -> Self {
+        self.public = public;
+        *self
     }
 
-    pub fn with_threads(&mut self) -> &mut Self {
-        self.threaded = true;
-        self
+    pub fn with_threading(&mut self, threaded: bool) -> Self {
+        self.threaded = threaded;
+        *self
     }
 
-    pub fn with_shutdown_timeout(&mut self, timeout: std::time::Duration) -> &mut Self {
+    pub fn with_shutdown_timeout(&mut self, timeout: std::time::Duration) -> Self {
         self.shutdown_timeout = timeout;
-        self
+        *self
     }
 }
 
