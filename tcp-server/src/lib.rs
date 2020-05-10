@@ -79,7 +79,11 @@ impl Server {
         R: Future<Output = Result<()>> + Send,
     {
         match self.runtime.take() {
-            Some(mut rt) => Ok(rt.block_on(async { self.serve(handler).await })?),
+            Some(mut rt) => {
+                let res = rt.block_on(async { self.serve(handler).await });
+                self.wait();
+                res
+            }
             None => Err(string_error::static_err("can not run the server twice")),
         }
     }
@@ -135,13 +139,5 @@ impl Server {
 impl Drop for Server {
     fn drop(&mut self) {
         self.wait();
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn it_works() {
-        assert_eq!(2 + 2, 4);
     }
 }
