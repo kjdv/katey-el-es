@@ -8,8 +8,8 @@ edition = "2018"
 
 [dependencies]
 tcp-server = { path = "../tcp-server" }
+io-copy = { path = "../io-copy" }
 clap = "^2.33.0"
-tokio = { version = "^0.2.20", features = ["io-util"] }
 log = "^0.4.8"
 simple_logger = "^1.5.0"
 

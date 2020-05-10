@@ -1,8 +1,8 @@
 extern crate clap;
+extern crate io_copy;
 extern crate log;
 extern crate simple_logger;
 extern crate tcp_server;
-extern crate tokio;
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
@@ -50,8 +50,8 @@ fn main() -> Result<()> {
 }
 
 async fn handle(mut stream: tcp_server::TcpStream) {
-    let (mut rx, mut tx) = stream.split();
-    if let Err(e) = tokio::io::copy(&mut rx, &mut tx).await {
+    let (rx, tx) = stream.split();
+    if let Err(e) = io_copy::copy(rx, tx).await {
         log::error!("error: {}", e);
     }
 }

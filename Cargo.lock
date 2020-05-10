@@ -918,10 +918,10 @@ version = "0.1.0"
 dependencies = [
  "clap",
  "escargot",
+ "io-copy",
  "log",
  "simple_logger",
  "tcp-server",
- "tokio",
 ]
 
 [[package]]
