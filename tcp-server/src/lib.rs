@@ -76,13 +76,13 @@ impl Server {
     pub fn run<F, R>(&mut self, handler: F) -> Result<()>
     where
         F: Fn(Stream) -> R + Send + Sync + Copy + 'static,
-        R: Future<Output = Result<()>> + Send,
+        R: Future + Send,
     {
         match self.runtime.take() {
             Some(mut rt) => {
                 let res = rt.block_on(async { self.serve_with_graceful_shutdown(handler).await });
                 self.wait(rt);
-                res
+                res.map_err(|e| e.into())
             }
             None => Err(string_error::static_err("can not run the server twice")),
         }
@@ -96,10 +96,10 @@ impl Server {
         rt.shutdown_timeout(self.config.shutdown_timeout);
     }
 
-    async fn serve_with_graceful_shutdown<F, R>(&self, handler: F) -> Result<()>
+    async fn serve_with_graceful_shutdown<F, R>(&self, handler: F) -> std::io::Result<()>
     where
         F: Fn(Stream) -> R + Send + Sync + Copy + 'static,
-        R: Future<Output = Result<()>> + Send,
+        R: Future + Send,
     {
         tokio::select! {
             x = self.serve(handler) => x,
@@ -108,10 +108,10 @@ impl Server {
         }
     }
 
-    async fn serve<F, R>(&self, handler: F) -> Result<()>
+    async fn serve<F, R>(&self, handler: F) -> std::io::Result<()>
     where
         F: Fn(Stream) -> R + Send + Sync + Copy + 'static,
-        R: Future<Output = Result<()>> + Send,
+        R: Future + Send,
     {
         let address = if self.config.public {
             log::warn!("binding port {} publicly to 0.0.0.0", self.config.port);
@@ -128,15 +128,13 @@ impl Server {
             log::info!("accepted connection from {}", remote_address);
 
             tokio::spawn(async move {
-                if let Err(e) = handler(stream).await {
-                    log::error!("handler error: {}", e);
-                }
+                handler(stream).await;
                 log::info!("closing connection from {}", remote_address);
             });
         }
     }
 
-    async fn wait_for_signal(&self, kind: SignalKind) -> Result<()> {
+    async fn wait_for_signal(&self, kind: SignalKind) -> std::io::Result<()> {
         let mut sig = signal(kind)?;
         sig.recv().await;
         log::info!("received signal {:?}", kind);

@@ -54,7 +54,9 @@ fn main() -> Result<()> {
     server.run(handle)
 }
 
-async fn handle(mut stream: tcp_server::Stream) -> Result<()> {
+async fn handle(mut stream: tcp_server::Stream) {
     let (rx, tx) = stream.split();
-    io_copy::copy(rx, tx).await.map_err(|e| e.into())
+    if let Err(e) = io_copy::copy(rx, tx).await {
+        log::error!("copy error: {}", e);
+    }
 }
