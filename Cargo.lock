@@ -907,8 +907,11 @@ name = "tcp-client"
 version = "0.1.0"
 dependencies = [
  "clap",
+ "futures",
  "io-copy",
+ "log",
  "simple_logger",
+ "string-error",
  "tokio",
 ]
 

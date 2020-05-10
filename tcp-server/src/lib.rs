@@ -7,8 +7,7 @@ use futures::future::Future;
 use std::marker::{Send, Sync};
 use tokio::net::TcpListener;
 
-pub use tokio::net::TcpStream;
-pub use tokio::runtime::Handle;
+pub use tokio::net::TcpStream as Stream;
 
 pub type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
@@ -75,7 +74,7 @@ impl Server {
 
     pub fn run<F, R>(&mut self, handler: F) -> Result<()>
     where
-        F: Fn(TcpStream) -> R + Send + Sync + Copy + 'static,
+        F: Fn(Stream) -> R + Send + Sync + Copy + 'static,
         R: Future<Output = Result<()>> + Send,
     {
         match self.runtime.take() {
@@ -85,15 +84,6 @@ impl Server {
                 res
             }
             None => Err(string_error::static_err("can not run the server twice")),
-        }
-    }
-
-    pub fn handle(&self) -> Result<&Handle> {
-        match &self.runtime {
-            Some(rt) => Ok(rt.handle()),
-            None => Err(string_error::static_err(
-                "can not create handle to completed server",
-            )),
         }
     }
 
@@ -109,7 +99,7 @@ impl Server {
 
     async fn serve<F, R>(&self, handler: F) -> Result<()>
     where
-        F: Fn(TcpStream) -> R + Send + Sync + Copy + 'static,
+        F: Fn(Stream) -> R + Send + Sync + Copy + 'static,
         R: Future<Output = Result<()>> + Send,
     {
         let address = if self.config.public {

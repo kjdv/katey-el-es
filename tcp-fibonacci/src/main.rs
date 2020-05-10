@@ -5,7 +5,7 @@ extern crate tcp_server;
 extern crate tokio;
 
 use std::time::Duration;
-use tcp_server::TcpStream;
+use tcp_server::Stream;
 use tokio::io::AsyncWriteExt;
 use tokio::time::delay_for;
 
@@ -51,7 +51,7 @@ fn main() -> Result<()> {
                 .help("delay between the produced numbers")
                 .short("i")
                 .long("interval")
-                .default_value("1")
+                .default_value("0.01")
                 .validator(validate_delay),
         )
         .get_matches();
@@ -79,7 +79,7 @@ fn main() -> Result<()> {
     server.run(move |stream| async move { handle(stream, n, delay).await })
 }
 
-async fn handle(mut stream: TcpStream, n: u32, delay: Duration) -> Result<()> {
+async fn handle(mut stream: Stream, n: u32, delay: Duration) -> Result<()> {
     let mut a = 0;
     let mut b = 1;
 

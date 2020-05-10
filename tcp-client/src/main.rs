@@ -5,7 +5,6 @@ extern crate tokio;
 
 use io_copy::proxy;
 use tokio::io::{split, stdin, stdout};
-use tokio::net::TcpStream;
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
@@ -33,21 +32,14 @@ fn main() -> Result<()> {
 
     let address = args.value_of("address").unwrap();
 
-    let mut runtime = tokio::runtime::Builder::new()
-        .enable_all()
-        .basic_scheduler()
-        .build()?;
+    let config = tcp_client::Config::new(address)
+        .with_shutdown_timeout(std::time::Duration::from_secs_f64(0.1));
+    let mut client = tcp_client::Client::new(config)?;
 
-    runtime.block_on(async { handle(&address).await })?;
-
-    // kludge: tokio's stdin is implemented using a background thread, and needs explicit shutdown
-    runtime.shutdown_timeout(std::time::Duration::from_secs_f64(0.1));
-
-    Ok(())
+    client.run(handle)
 }
 
-async fn handle(address: &str) -> Result<()> {
-    let stream = TcpStream::connect(address).await?;
+async fn handle(stream: tcp_client::Stream) -> Result<()> {
     let stream = split(stream);
     let input = stdin();
     let output = stdout();

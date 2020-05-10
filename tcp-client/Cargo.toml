@@ -9,5 +9,8 @@ edition = "2018"
 [dependencies]
 io-copy = { path = "../io-copy" }
 clap = "^2.33.0"
-tokio = { version = "^0.2.20", features = ["net", "rt-core", "io-std", "macros"] }
+tokio = { version = "^0.2.20", features = ["net", "rt-core", "rt-threaded", "io-std", "macros"] }
 simple_logger = "^1.5.0"
+futures = "^0.3.5"
+string-error = "^0.1.0"
+log = "^0.4.8"
