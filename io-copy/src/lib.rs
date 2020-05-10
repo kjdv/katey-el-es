@@ -6,8 +6,6 @@ use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
 const BUFSIZE: usize = 512;
 
-type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
-
 pub async fn copy<T, U>(mut from: T, mut to: U) -> std::io::Result<()>
 where
     T: AsyncReadExt + Unpin,
@@ -36,7 +34,7 @@ where
     }
 }
 
-pub async fn proxy<T, U, V, W>(stream1: (T, U), stream2: (V, W)) -> Result<()>
+pub async fn proxy<T, U, V, W>(stream1: (T, U), stream2: (V, W)) -> std::io::Result<()>
 where
     T: AsyncReadExt + Unpin,
     U: AsyncWriteExt + Unpin,
@@ -56,7 +54,7 @@ where
                 },
                 Err(e) => {
                     log::warn!("rx1->tx2 errored: {}", e);
-                    Err(e.into())
+                    Err(e)
                 }
             }
         },
@@ -68,7 +66,7 @@ where
                 },
                 Err(e) => {
                     log::warn!("rx2->tx1 errored: {}", e);
-                    Err(e.into())
+                    Err(e)
                 }
             }
         }

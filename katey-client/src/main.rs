@@ -90,7 +90,7 @@ async fn handle(address: &str, config: rustls::ClientConfig) -> Result<()> {
     let input = stdin();
     let output = stdout();
 
-    proxy((input, output), stream).await
+    proxy((input, output), stream).await.map_err(|e| e.into())
 }
 
 fn domain(address: &str) -> &str {

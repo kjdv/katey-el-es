@@ -63,22 +63,16 @@ impl Client<'_> {
         })
     }
 
-    pub fn run<F, R>(&mut self, handler: F) -> Result<()>
+    pub fn run<F, R>(&mut self, handler: F) -> Result<R::Output>
     where
         F: Fn(Stream) -> R,
-        R: Future<Output = Result<()>>,
+        R: Future,
     {
         match self.runtime.take() {
             Some(mut rt) => {
                 let res = rt.block_on(async {
                     let stream = Stream::connect(self.config.address).await?;
-                    match handler(stream).await {
-                        Ok(_) => Ok(()),
-                        Err(e) => {
-                            log::error!("handler error: {}", e);
-                            Err(e)
-                        }
-                    }
+                    Ok(handler(stream).await)
                 });
                 self.wait(rt);
                 res

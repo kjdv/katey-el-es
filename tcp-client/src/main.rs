@@ -36,10 +36,10 @@ fn main() -> Result<()> {
         .with_shutdown_timeout(std::time::Duration::from_secs_f64(0.1));
     let mut client = tcp_client::Client::new(config)?;
 
-    client.run(handle)
+    client.run(handle).and_then(|r| r.map_err(|e| e.into()))
 }
 
-async fn handle(stream: tcp_client::Stream) -> Result<()> {
+async fn handle(stream: tcp_client::Stream) -> std::io::Result<()> {
     let stream = split(stream);
     let input = stdin();
     let output = stdout();
