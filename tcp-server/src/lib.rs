@@ -10,7 +10,7 @@ use tokio::net::TcpListener;
 pub use tokio::net::TcpStream;
 pub use tokio::runtime::Handle;
 
-type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
+pub type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
 #[derive(Debug, Copy, Clone)]
 pub struct Config {
@@ -53,7 +53,7 @@ pub struct Server {
 
 impl Server {
     pub fn new(config: Config) -> Result<Server> {
-        log::debug!("creating tokio runtime");
+        log::info!("creating server with configuration {:?}", config);
 
         let mut runtime = tokio::runtime::Builder::new();
 
@@ -75,9 +75,8 @@ impl Server {
 
     pub fn run<F, R>(&mut self, handler: F) -> Result<()>
     where
-        F: Fn(TcpStream) -> R + Sync + 'static,
-        R: Future + Send + 'static,
-        R::Output: Send + 'static,
+        F: Fn(TcpStream) -> R + Send + Sync + Copy + 'static,
+        R: Future + Send,
     {
         match self.runtime.take() {
             Some(mut rt) => Ok(rt.block_on(async { self.serve(handler).await })?),
@@ -106,9 +105,8 @@ impl Server {
 
     async fn serve<F, R>(&self, handler: F) -> Result<()>
     where
-        F: Fn(TcpStream) -> R + Sync + 'static,
-        R: Future + Send + 'static,
-        R::Output: Send + 'static,
+        F: Fn(TcpStream) -> R + Send + Sync + Copy + 'static,
+        R: Future + Send,
     {
         let address = if self.config.public {
             log::warn!("binding port {} publicly to 0.0.0.0", self.config.port);
@@ -124,7 +122,10 @@ impl Server {
             let (stream, remote_address) = listener.accept().await?;
             log::info!("accepted connection from {}", remote_address);
 
-            tokio::spawn(handler(stream));
+            tokio::spawn(async move {
+                handler(stream).await;
+                log::info!("closing connection from {}", remote_address);
+            });
         }
     }
 }

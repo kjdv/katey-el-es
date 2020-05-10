@@ -318,7 +318,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "integration_test"
+name = "integration-test"
 version = "0.1.0"
 dependencies = [
  "escargot",
@@ -932,6 +932,7 @@ dependencies = [
  "escargot",
  "log",
  "simple_logger",
+ "tcp-server",
  "tokio",
 ]
 

@@ -10,5 +10,5 @@ members = [
     "tcp-fibonacci",
     "katey-el-es",
     "katey-client",
-    "integration_test"
+    "integration-test"
 ]
