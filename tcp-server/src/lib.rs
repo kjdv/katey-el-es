@@ -6,6 +6,7 @@ extern crate tokio;
 use futures::future::Future;
 use std::marker::{Send, Sync};
 use tokio::net::TcpListener;
+use tokio::signal::unix::{signal, SignalKind};
 
 pub use tokio::net::TcpStream as Stream;
 
@@ -79,21 +80,31 @@ impl Server {
     {
         match self.runtime.take() {
             Some(mut rt) => {
-                let res = rt.block_on(async { self.serve(handler).await });
-                self.wait();
+                let res = rt.block_on(async { self.serve_with_graceful_shutdown(handler).await });
+                self.wait(rt);
                 res
             }
             None => Err(string_error::static_err("can not run the server twice")),
         }
     }
 
-    fn wait(&mut self) {
-        if let Some(rt) = self.runtime.take() {
-            log::debug!(
-                "waiting for {:?} to shut down",
-                self.config.shutdown_timeout
-            );
-            rt.shutdown_timeout(self.config.shutdown_timeout);
+    fn wait(&self, rt: tokio::runtime::Runtime) {
+        log::debug!(
+            "waiting for {:?} to shut down",
+            self.config.shutdown_timeout
+        );
+        rt.shutdown_timeout(self.config.shutdown_timeout);
+    }
+
+    async fn serve_with_graceful_shutdown<F, R>(&self, handler: F) -> Result<()>
+    where
+        F: Fn(Stream) -> R + Send + Sync + Copy + 'static,
+        R: Future<Output = Result<()>> + Send,
+    {
+        tokio::select! {
+            x = self.serve(handler) => x,
+            x = self.wait_for_signal(SignalKind::interrupt()) => x,
+            x = self.wait_for_signal(SignalKind::terminate()) => x,
         }
     }
 
@@ -124,10 +135,19 @@ impl Server {
             });
         }
     }
+
+    async fn wait_for_signal(&self, kind: SignalKind) -> Result<()> {
+        let mut sig = signal(kind)?;
+        sig.recv().await;
+        log::info!("received signal {:?}", kind);
+        Ok(())
+    }
 }
 
 impl Drop for Server {
     fn drop(&mut self) {
-        self.wait();
+        if let Some(rt) = self.runtime.take() {
+            self.wait(rt);
+        }
     }
 }
