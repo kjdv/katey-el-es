@@ -76,11 +76,7 @@ fn main() -> Result<()> {
         .with_threading(args.is_present("threads"));
     let mut server = tcp_server::Server::new(config)?;
 
-    server.run(move |stream| async move {
-        if let Err(e) = handle(stream, n, delay).await {
-            log::error!("error: {}", e);
-        }
-    })
+    server.run(move |stream| async move { handle(stream, n, delay).await })
 }
 
 async fn handle(mut stream: TcpStream, n: u32, delay: Duration) -> Result<()> {
