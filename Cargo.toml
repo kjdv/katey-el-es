@@ -4,6 +4,7 @@ members = [
     "certutils",
     "certgen",
     "io-copy",
+    "tcp-server",
     "tcp-echo",
     "tcp-client",
     "tcp-fibonacci",

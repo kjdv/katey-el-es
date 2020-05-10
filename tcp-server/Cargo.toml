@@ -1,5 +1,5 @@
 [package]
-name = "tcp-echo"
+name = "tcp-server"
 version = "0.1.0"
 authors = ["Klaas de Vries <klaasjacobdevries@gmail.com>"]
 edition = "2018"
@@ -7,11 +7,7 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-tcp-server = { path = "../tcp-server" }
-clap = "^2.33.0"
-tokio = { version = "^0.2.20", features = ["io-util"] }
+tokio = { version = "^0.2.20", features = ["net", "io-util", "rt-core", "rt-threaded", "macros"] }
 log = "^0.4.8"
-simple_logger = "^1.5.0"
-
-[dev-dependencies]
-escargot = "^0.5.0"
+futures = "^0.3.5"
+string-error = "^0.1.0"
