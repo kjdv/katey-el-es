@@ -379,13 +379,12 @@ dependencies = [
 name = "katey-el-es"
 version = "0.1.0"
 dependencies = [
- "certutils",
  "clap",
  "io-copy",
  "log",
  "simple_logger",
+ "tls-server",
  "tokio",
- "tokio-rustls",
 ]
 
 [[package]]
@@ -1005,6 +1004,20 @@ checksum = "ca8a50ef2360fbd1eeb0ecd46795a87a19024eb4b53c5dc916ca1fd95fe62438"
 dependencies = [
  "libc",
  "winapi 0.3.8",
+]
+
+[[package]]
+name = "tls-server"
+version = "0.1.0"
+dependencies = [
+ "certutils",
+ "futures",
+ "log",
+ "rustls",
+ "string-error",
+ "tokio",
+ "tokio-rustls",
+ "webpki",
 ]
 
 [[package]]

@@ -8,6 +8,7 @@ members = [
     "tcp-echo",
     "tcp-client",
     "tcp-fibonacci",
+    "tls-server",
     "katey-el-es",
     "katey-client",
     "integration-test"

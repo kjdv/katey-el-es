@@ -7,10 +7,9 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-certutils = { path = "../certutils"}
 io-copy = { path = "../io-copy" }
+tls-server = { path = "../tls-server" }
+tokio = { version = "^0.2.20", features = ["net", "io-util"] }
 clap = "^2.33.0"
-tokio = { version = "^0.2.20", features = ["net", "io-util", "rt-core", "macros"] }
 log = "^0.4.8"
 simple_logger = "^1.5.0"
-tokio-rustls = "^0.13.0"

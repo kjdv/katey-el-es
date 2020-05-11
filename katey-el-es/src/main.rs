@@ -1,26 +1,18 @@
-extern crate certutils;
 extern crate clap;
 extern crate io_copy;
 extern crate log;
 extern crate simple_logger;
-extern crate tokio;
-extern crate tokio_rustls;
-
-use std::str::FromStr;
-use tokio_rustls::rustls;
-use tokio_rustls::server::TlsStream;
-use tokio_rustls::TlsAcceptor;
+extern crate tls_server;
 
 use io_copy::proxy;
-use std::marker::Unpin;
+use std::str::FromStr;
 use std::sync::Arc;
-use tokio::io::{split, AsyncRead, AsyncWrite};
-use tokio::net::{TcpListener, TcpStream};
+use tokio::io::split;
+use tokio::net::TcpStream;
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
-#[tokio::main]
-async fn main() -> Result<()> {
+fn main() -> Result<()> {
     let args = clap::App::new("katey-el-es")
         .author("Klaas de Vries")
         .about("TLS proxy")
@@ -29,6 +21,11 @@ async fn main() -> Result<()> {
                 .help("enable debug logging")
                 .short("d")
                 .long("debug"),
+        )
+        .arg(
+            clap::Arg::with_name("threads")
+                .help("enable multi-threaded server")
+                .long("threads"),
         )
         .arg(
             clap::Arg::with_name("listen")
@@ -77,80 +74,43 @@ async fn main() -> Result<()> {
 
     log::debug!("arguments are config file is {:?}", args);
 
-    let listen_address = format!("0.0.0.0:{}", args.value_of("listen").unwrap());
+    let listen_port: u16 = args.value_of("listen").unwrap().parse().expect("a number");
     let forward_address = args.value_of("forward").unwrap();
     log::info!(
         "setting up to listen at {} and forward to {}",
-        listen_address,
+        listen_port,
         forward_address
     );
 
-    let config = make_config(&args)?;
-
-    serve(config, &listen_address, &forward_address).await?;
-
-    Ok(())
-}
-
-async fn serve(
-    config: rustls::ServerConfig,
-    listen_address: &str,
-    forward_address: &str,
-) -> Result<()> {
-    let forward_address = String::from_str(forward_address)?;
-    let acceptor = TlsAcceptor::from(Arc::new(config));
-    let mut listener = TcpListener::bind(listen_address).await?;
-    log::info!("listening on {:?}", listen_address);
-
-    loop {
-        let (stream, remote_address) = listener.accept().await?;
-        log::info!("accepted connection from {}", remote_address);
-
-        let acceptor = acceptor.clone();
-        let forward_address = forward_address.clone();
-
-        tokio::spawn(async move {
-            match acceptor.accept(stream).await {
-                Ok(stream) => match TcpStream::connect(&forward_address).await {
-                    Ok(forward) => {
-                        handle(stream, forward).await;
-                        log::info!("closing connection from {}", remote_address);
-                    }
-                    Err(e) => {
-                        log::error!("could not forward: {}", e);
-                    }
-                },
-                Err(e) => {
-                    log::warn!("not accepted: {}", e);
-                }
-            }
-        });
+    let mut config = tls_server::Config::new(listen_port);
+    config.with_threading(args.is_present("threads"));
+    config.with_certificate_and_key_files(
+        args.value_of("cert").unwrap(),
+        args.value_of("key").unwrap(),
+    )?;
+    if let Some(root) = args.value_of("client_auth") {
+        config.with_client_authentication(root)?;
     }
+
+    let mut server = tls_server::Server::new(config)?;
+
+    let forward_address = String::from_str(forward_address)?;
+    server.run(move |stream| async move {
+        forward_address.clone();
+        match TcpStream::connect(forward_address).await {
+            Ok(forward) => {
+                handle(stream, forward);
+            }
+            Err(e) => {
+                log::error!("could not forward: {}", e);
+            }
+        };
+    })
 }
 
-async fn handle<IO>(from_stream: TlsStream<IO>, to_stream: TcpStream)
-where
-    IO: AsyncRead + AsyncWrite + Unpin + Send,
-{
+async fn handle(from_stream: tls_server::Stream, to_stream: TcpStream) {
     let from_stream = split(from_stream);
     let to_stream = split(to_stream);
 
     let _ = proxy(from_stream, to_stream).await;
-}
-
-fn make_config(args: &clap::ArgMatches) -> Result<rustls::ServerConfig> {
-    let key = args.value_of("key").unwrap();
-    let cert = args.value_of("cert").unwrap();
-
-    log::info!("using certificate {} with private key {}", cert, key);
-
-    let maybe_client_auth = args.value_of("client_auth");
-    if let Some(root_path) = maybe_client_auth {
-        log::info!(
-            "enabling client authentication using root ca's in {}",
-            root_path
-        );
-    }
-
-    certutils::make_server_config(cert, key, maybe_client_auth)
 }
