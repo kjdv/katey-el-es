@@ -151,7 +151,8 @@ impl Server {
             tokio::spawn(async move {
                 match acceptor.accept(stream).await {
                     Ok(stream) => {
-                        handler(stream);
+                        handler(stream).await;
+                        log::info!("closing connection from {}", remote_address);
                     }
                     Err(e) => {
                         log::warn!("not accepted: {}", e);

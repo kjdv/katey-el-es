@@ -15,7 +15,7 @@ ready = { port=4000 }
 
 [[program]]
 name = "fibonacci"
-argv = ["tcp-fibonacci", "--debug", "--port", "4001", "--interval", "0.1"]
+argv = ["tcp-fibonacci", "--debug", "--port", "4001", "--interval", "0.01"]
 ready = { port=4001 }
 
 [[program]]

@@ -6,7 +6,6 @@ extern crate tls_server;
 
 use io_copy::proxy;
 use std::str::FromStr;
-use std::sync::Arc;
 use tokio::io::split;
 use tokio::net::TcpStream;
 
@@ -94,13 +93,10 @@ fn main() -> Result<()> {
 
     let mut server = tls_server::Server::new(config)?;
 
-    let forward_address = String::from_str(forward_address)?;
+    set_forward_address(forward_address)?;
     server.run(move |stream| async move {
-        forward_address.clone();
-        match TcpStream::connect(forward_address).await {
-            Ok(forward) => {
-                handle(stream, forward);
-            }
+        match TcpStream::connect(get_forward_address()).await {
+            Ok(forward) => handle(stream, forward).await,
             Err(e) => {
                 log::error!("could not forward: {}", e);
             }
@@ -113,4 +109,19 @@ async fn handle(from_stream: tls_server::Stream, to_stream: TcpStream) {
     let to_stream = split(to_stream);
 
     let _ = proxy(from_stream, to_stream).await;
+}
+
+// TODO: figure out the safe and proper way to get a String with proper lifetime into the handler
+
+static mut FORWARD_ADDRESS: String = String::new();
+
+fn get_forward_address() -> String {
+    unsafe { FORWARD_ADDRESS.clone() }
+}
+
+fn set_forward_address(s: &str) -> Result<()> {
+    unsafe {
+        FORWARD_ADDRESS = String::from_str(s)?;
+    }
+    Ok(())
 }
