@@ -4,19 +4,34 @@ extern crate tempfile;
 use std::io::{BufRead, Read, Write};
 use std::process::{Child, Stdio};
 
+struct ChildProcess {
+    child: Child,
+}
+
+impl Drop for ChildProcess {
+    fn drop(&mut self) {
+        let _ = self.child.kill();
+        let _ = self.child.wait();
+    }
+}
+
 pub struct Fixture {
     tempdir: tempfile::TempDir,
 
-    tcp_echo: Child,
+    #[allow(dead_code)]
+    tcp_echo: ChildProcess,
     echo_port: u16,
 
-    tcp_fib: Child,
+    #[allow(dead_code)]
+    tcp_fib: ChildProcess,
     fib_port: u16,
 
-    tls_echo: Child,
+    #[allow(dead_code)]
+    tls_echo: ChildProcess,
     tls_echo_port: u16,
 
-    tls_fib: Child,
+    #[allow(dead_code)]
+    tls_fib: ChildProcess,
     tls_fib_port: u16,
 }
 
@@ -32,60 +47,68 @@ impl Fixture {
         certgen(tempdir.path(), "this-root", &["this-server", "this-client"]);
         certgen(tempdir.path(), "other-root", &["other-client"]);
 
-        let tcp_echo = escargot::CargoBuild::new()
-            .manifest_path(manifest())
-            .bin("tcp-echo")
-            .run()
-            .expect("cargo run")
-            .command()
-            .arg(format!("--port={}", base_port))
-            .stdout(Stdio::null())
-            .spawn()
-            .expect("spawn");
-        let tcp_fib = escargot::CargoBuild::new()
-            .manifest_path(manifest())
-            .bin("tcp-fibonacci")
-            .run()
-            .expect("cargo run")
-            .command()
-            .arg(format!("--port={}", fib_port))
-            .arg("--number=10")
-            .arg("--interval=0.01")
-            .stdout(Stdio::null())
-            .spawn()
-            .expect("spawn");
-        let tls_echo = escargot::CargoBuild::new()
-            .manifest_path(manifest())
-            .bin("katey-el-es")
-            .run()
-            .expect("cargo run")
-            .command()
-            .arg(format!("{}", tls_echo_port))
-            .arg(format!("127.0.0.1:{}", echo_port))
-            .arg("--cert")
-            .arg(certfile(tempdir.path(), "this-server"))
-            .arg("--key")
-            .arg(keyfile(tempdir.path(), "this-server"))
-            .stdout(Stdio::null())
-            .spawn()
-            .expect("spawn");
-        let tls_fib = escargot::CargoBuild::new()
-            .manifest_path(manifest())
-            .bin("katey-el-es")
-            .run()
-            .expect("cargo run")
-            .command()
-            .arg(format!("{}", tls_fib_port))
-            .arg(format!("127.0.0.1:{}", fib_port))
-            .arg("--cert")
-            .arg(certfile(tempdir.path(), "this-server"))
-            .arg("--key")
-            .arg(keyfile(tempdir.path(), "this-server"))
-            .arg("--authenticate")
-            .arg(certfile(tempdir.path(), "this-root"))
-            .stdout(Stdio::null())
-            .spawn()
-            .expect("spawn");
+        let tcp_echo = ChildProcess {
+            child: escargot::CargoBuild::new()
+                .manifest_path(manifest())
+                .bin("tcp-echo")
+                .run()
+                .expect("cargo run")
+                .command()
+                .arg(format!("--port={}", base_port))
+                .stdout(Stdio::null())
+                .spawn()
+                .expect("spawn"),
+        };
+        let tcp_fib = ChildProcess {
+            child: escargot::CargoBuild::new()
+                .manifest_path(manifest())
+                .bin("tcp-fibonacci")
+                .run()
+                .expect("cargo run")
+                .command()
+                .arg(format!("--port={}", fib_port))
+                .arg("--number=10")
+                .arg("--interval=0.01")
+                .stdout(Stdio::null())
+                .spawn()
+                .expect("spawn"),
+        };
+        let tls_echo = ChildProcess {
+            child: escargot::CargoBuild::new()
+                .manifest_path(manifest())
+                .bin("katey-el-es")
+                .run()
+                .expect("cargo run")
+                .command()
+                .arg(format!("{}", tls_echo_port))
+                .arg(format!("127.0.0.1:{}", echo_port))
+                .arg("--cert")
+                .arg(certfile(tempdir.path(), "this-server"))
+                .arg("--key")
+                .arg(keyfile(tempdir.path(), "this-server"))
+                .stdout(Stdio::null())
+                .spawn()
+                .expect("spawn"),
+        };
+        let tls_fib = ChildProcess {
+            child: escargot::CargoBuild::new()
+                .manifest_path(manifest())
+                .bin("katey-el-es")
+                .run()
+                .expect("cargo run")
+                .command()
+                .arg(format!("{}", tls_fib_port))
+                .arg(format!("127.0.0.1:{}", fib_port))
+                .arg("--cert")
+                .arg(certfile(tempdir.path(), "this-server"))
+                .arg("--key")
+                .arg(keyfile(tempdir.path(), "this-server"))
+                .arg("--authenticate")
+                .arg(certfile(tempdir.path(), "this-root"))
+                .stdout(Stdio::null())
+                .spawn()
+                .expect("spawn"),
+        };
 
         for port in &[echo_port, fib_port, tls_echo_port, tls_fib_port] {
             wait_for(*port, 1.0).expect("port");
@@ -180,22 +203,6 @@ impl Fixture {
             reader,
             writer,
         }
-    }
-}
-
-impl Drop for Fixture {
-    fn drop(&mut self) {
-        let _ = self.tls_fib.kill();
-        let _ = self.tls_fib.wait();
-
-        let _ = self.tls_echo.kill();
-        let _ = self.tls_echo.wait();
-
-        let _ = self.tcp_fib.kill();
-        let _ = self.tcp_fib.wait();
-
-        let _ = self.tcp_echo.kill();
-        let _ = self.tcp_echo.wait();
     }
 }
 
