@@ -1,16 +1,10 @@
-extern crate certutils;
 extern crate clap;
 extern crate io_copy;
 extern crate simple_logger;
 extern crate tokio;
-extern crate tokio_rustls;
 
 use io_copy::proxy;
-use std::sync::Arc;
 use tokio::io::{split, stdin, stdout};
-use tokio::net::TcpStream;
-use tokio_rustls::rustls;
-use tokio_rustls::TlsConnector;
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
@@ -61,41 +55,29 @@ fn main() -> Result<()> {
 
     let address = args.value_of("address").unwrap();
 
-    let config = certutils::make_client_config(
-        args.value_of("root").unwrap(),
-        args.value_of("cert"),
-        args.value_of("key"),
-    )?;
+    let mut config = katey_client::Config::new(address);
+    config
+        .with_shutdown_timeout(std::time::Duration::from_secs_f64(0.1))
+        .with_root(args.value_of("root").unwrap())
+        .expect("config");
 
-    let mut runtime = tokio::runtime::Builder::new()
-        .enable_all()
-        .basic_scheduler()
-        .build()?;
+    if args.is_present("cert") {
+        assert!(args.is_present("key"));
 
-    let ret = runtime.block_on(async { handle(&address, config).await });
+        config.with_certificate_and_key_files(
+            args.value_of("cert").unwrap(),
+            args.value_of("key").unwrap(),
+        )?;
+    }
 
-    // kludge: tokio's stdin is implemented using a background thread, and needs explicit shutdown
-    runtime.shutdown_timeout(std::time::Duration::from_secs_f64(0.1));
-
-    ret
+    let mut client = katey_client::Client::new(config)?;
+    client.run(handle).and_then(|r| r.map_err(|e| e.into()))
 }
 
-async fn handle(address: &str, config: rustls::ClientConfig) -> Result<()> {
-    let dom = domain(address);
-    let connector = TlsConnector::from(Arc::new(config));
-    let stream = TcpStream::connect(address).await?;
-    let stream = connector.connect(certutils::dns_name(dom), stream).await?;
-
+async fn handle(stream: katey_client::Stream) -> std::io::Result<()> {
     let stream = split(stream);
     let input = stdin();
     let output = stdout();
 
-    proxy((input, output), stream).await.map_err(|e| e.into())
-}
-
-fn domain(address: &str) -> &str {
-    match address.find(':') {
-        Some(n) => &address[..n],
-        None => address,
-    }
+    proxy((input, output), stream).await
 }

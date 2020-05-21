@@ -369,8 +369,12 @@ version = "0.1.0"
 dependencies = [
  "certutils",
  "clap",
+ "futures",
  "io-copy",
+ "log",
+ "rustls",
  "simple_logger",
+ "string-error",
  "tokio",
  "tokio-rustls",
 ]
