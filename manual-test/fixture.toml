@@ -1,37 +1,43 @@
 [[program]]
 name = "other-certgen"
-argv = ["certgen", "tree", "other-root", "other-client"]
+exec = "certgen"
+args =  ["tree", "other-root", "other-client"]
 ready = { completed={} }
 
 [[program]]
 name = "certgen"
-argv = ["certgen", "tree", "root", "server", "client"]
+exec = "certgen"
+args = ["tree", "root", "server", "client"]
 ready = { completed={} }
 
 [[program]]
 name = "echo"
-argv = ["tcp-echo", "--debug", "--port", "4000"]
+exec = "tcp-echo"
+args = ["--debug", "--port", "4000"]
 ready = { port=4000 }
 
 [[program]]
 name = "fibonacci"
-argv = ["tcp-fibonacci", "--debug", "--port", "4001", "--interval", "0.01"]
+exec = "tcp-fibonacci"
+args = ["--debug", "--port", "4001", "--interval", "0.01"]
 ready = { port=4001 }
 
 [[program]]
 name = "katey-echo"
-argv = ["katey-el-es", "--debug", "--cert", "server-cert.pem", "--key", "server-key.pem", "5000", "localhost:4000"]
+exec = "katey-el-es"
+args = ["--debug", "--cert", "server-cert.pem", "--key", "server-key.pem", "5000", "localhost:4000"]
 ready = { port=5000 }
 depends = ["certgen", "echo"]
 
 [[program]]
 name = "katey-fibonacci"
-argv = ["katey-el-es", "--debug", "--cert", "server-cert.pem", "--key", "server-key.pem", "5001", "localhost:4001", "--authenticate", "root-cert.pem"]
+exec = "katey-el-es"
+args = ["--debug", "--cert", "server-cert.pem", "--key", "server-key.pem", "5001", "localhost:4001", "--authenticate", "root-cert.pem"]
 ready = { port=5001 }
 depends = ["certgen", "fibonacci"]
 
 [[program]]
 name = "smoke-test"
-argv = ["./run.sh"]
+exec = "./run.sh"
 ready = { completed={} }
 depends = ["other-certgen", "certgen", "echo", "fibonacci", "katey-echo", "katey-fibonacci"]

@@ -30,7 +30,7 @@ test:
 	cargo test
 
 manual-test:
-	(cd manual-test && PATH=$(CURDIR)/target/debug:$(PATH) decompose --output=null --log=info fixture.toml)
+	(cd manual-test && PATH=$(CURDIR)/target/debug:$(PATH) decompose --output=inline --log=info fixture.toml)
 
 check:
 	cargo check --bins --examples --tests
