@@ -41,3 +41,5 @@ name = "smoke-test"
 exec = "./run.sh"
 ready = { completed={} }
 depends = ["other-certgen", "certgen", "echo", "fibonacci", "katey-echo", "katey-fibonacci"]
+critical = true
+
